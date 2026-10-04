@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/agent-authority/agent-authority/spec/AgentRunFacet.json",
+  "$id": "https://github.com/swar00pduthks/agent-authority/spec/AgentRunFacet.json",
   "title": "AgentRunFacet",
   "description": "Agent context for an OpenLineage run: role in the agent tree, identity, accountability and policy outcome.",
   "allOf": [

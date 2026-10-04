@@ -6,7 +6,7 @@
 
 Lineage and governance for data pipelines *and* AI agents, built on [OpenLineage](https://openlineage.io).
 
-[![ci](https://github.com/agent-authority/agent-authority/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![ci](https://github.com/swar00pduthks/agent-authority/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![openlineage](https://img.shields.io/badge/OpenLineage-compatible-45c4b0)
@@ -31,7 +31,7 @@ Agent Authority answers those questions from lineage you may already emit. It is
 ## Try it in 60 seconds
 
 ```bash
-pip install "git+https://github.com/agent-authority/agent-authority.git#subdirectory=backend"
+pip install "git+https://github.com/swar00pduthks/agent-authority.git#subdirectory=backend"
 authority demo
 ```
 

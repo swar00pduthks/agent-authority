@@ -30,9 +30,9 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-PRODUCER = "https://github.com/agent-authority/agent-authority/sdk/python"
+PRODUCER = "https://github.com/swar00pduthks/agent-authority/sdk/python"
 SCHEMA_URL = "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent"
-AGENT_FACET_SCHEMA = "https://github.com/agent-authority/agent-authority/spec/AgentRunFacet.json"
+AGENT_FACET_SCHEMA = "https://github.com/swar00pduthks/agent-authority/spec/AgentRunFacet.json"
 
 
 @dataclass

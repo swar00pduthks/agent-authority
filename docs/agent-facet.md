@@ -11,8 +11,8 @@ Agent Authority models agent work as ordinary OpenLineage runs. Hierarchy comes 
       "parent": { "run": { "runId": "..." }, "job": { "namespace": "trading", "name": "research" },
                   "root": { "run": { "runId": "..." }, "job": { "namespace": "trading", "name": "desk-assistant" } } },
       "agent": {
-        "_producer": "https://github.com/agent-authority/agent-authority/sdk/python",
-        "_schemaURL": "https://github.com/agent-authority/agent-authority/spec/AgentRunFacet.json",
+        "_producer": "https://github.com/swar00pduthks/agent-authority/sdk/python",
+        "_schemaURL": "https://github.com/swar00pduthks/agent-authority/spec/AgentRunFacet.json",
         "kind": "tool",
         "agentId": "research",
         "owner": "markets-ai",
