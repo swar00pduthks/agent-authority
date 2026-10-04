@@ -4,12 +4,12 @@
 # UI and API: http://localhost:8000      Kafka for your emitters: localhost:29092
 
 x-hub-env: &hub-env
-  AGENTHUB_STORE: prod
-  AGENTHUB_POLICY: /etc/agenthub/policy.yaml
+  AUTHORITY_STORE: prod
+  AUTHORITY_POLICY: /etc/agent_authority/policy.yaml
   CLICKHOUSE_HOST: clickhouse
-  CLICKHOUSE_USER: agenthub
-  CLICKHOUSE_PASSWORD: agenthub
-  POSTGRES_DSN: postgresql://agenthub:agenthub@postgres:5432/agenthub
+  CLICKHOUSE_USER: authority
+  CLICKHOUSE_PASSWORD: authority
+  POSTGRES_DSN: postgresql://authority:authority@postgres:5432/authority
   KAFKA_BOOTSTRAP: kafka:9092
   KAFKA_TOPIC: openlineage.events
 
@@ -34,8 +34,8 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
     environment:
-      CLICKHOUSE_USER: agenthub
-      CLICKHOUSE_PASSWORD: agenthub
+      CLICKHOUSE_USER: authority
+      CLICKHOUSE_PASSWORD: authority
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ulimits: { nofile: { soft: 262144, hard: 262144 } }
     volumes: [clickhouse:/var/lib/clickhouse]
@@ -48,39 +48,39 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: agenthub
-      POSTGRES_PASSWORD: agenthub
-      POSTGRES_DB: agenthub
+      POSTGRES_USER: authority
+      POSTGRES_PASSWORD: authority
+      POSTGRES_DB: authority
     volumes: [postgres:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agenthub"]
+      test: ["CMD-SHELL", "pg_isready -U authority"]
       interval: 5s
       retries: 20
 
   api:
     build: .
-    image: agenthub:local
+    image: agent-authority:local
     environment: *hub-env
-    volumes: [./deploy/policy.yaml:/etc/agenthub/policy.yaml:ro]
+    volumes: [./deploy/policy.yaml:/etc/agent_authority/policy.yaml:ro]
     ports: ["8000:8000"]
     depends_on:
       clickhouse: { condition: service_healthy }
       postgres: { condition: service_healthy }
 
   collector:
-    image: agenthub:local
-    command: ["agenthub", "collect"]
+    image: agent-authority:local
+    command: ["authority", "collect"]
     environment: *hub-env
-    volumes: [./deploy/policy.yaml:/etc/agenthub/policy.yaml:ro]
+    volumes: [./deploy/policy.yaml:/etc/agent_authority/policy.yaml:ro]
     depends_on:
       api: { condition: service_healthy }
       kafka: { condition: service_started }
     restart: unless-stopped
 
   demo-traffic:
-    image: agenthub:local
+    image: agent-authority:local
     profiles: [demo]
-    command: ["agenthub", "seed", "--kafka", "kafka:9092", "--count", "60", "--follow"]
+    command: ["authority", "seed", "--kafka", "kafka:9092", "--count", "60", "--follow"]
     depends_on: [collector]
     restart: unless-stopped
 

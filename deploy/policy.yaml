@@ -1,4 +1,4 @@
-# AgentHub capture policy. Mount and point AGENTHUB_POLICY at this file.
+# Agent Authority capture policy. Mount and point AUTHORITY_POLICY at this file.
 
 # Name of the run facet that carries agent context (align with your AgentRunFacet version).
 agent_facet_name: agent

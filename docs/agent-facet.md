@@ -1,6 +1,6 @@
 # The `agent` run facet
 
-AgentHub models agent work as ordinary OpenLineage runs. Hierarchy comes from the standard `ParentRunFacet`
+Agent Authority models agent work as ordinary OpenLineage runs. Hierarchy comes from the standard `ParentRunFacet`
 (including `root`). What makes a run an *agent* run is one custom run facet, `agent`:
 
 ```json
@@ -11,8 +11,8 @@ AgentHub models agent work as ordinary OpenLineage runs. Hierarchy comes from th
       "parent": { "run": { "runId": "..." }, "job": { "namespace": "trading", "name": "research" },
                   "root": { "run": { "runId": "..." }, "job": { "namespace": "trading", "name": "desk-assistant" } } },
       "agent": {
-        "_producer": "https://github.com/agent-hub/agent-hub/sdk/python",
-        "_schemaURL": "https://github.com/agent-hub/agent-hub/spec/AgentRunFacet.json",
+        "_producer": "https://github.com/agent-authority/agent-authority/sdk/python",
+        "_schemaURL": "https://github.com/agent-authority/agent-authority/spec/AgentRunFacet.json",
         "kind": "tool",
         "agentId": "research",
         "owner": "markets-ai",

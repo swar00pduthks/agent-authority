@@ -1,15 +1,7 @@
-@import '@fontsource/bricolage-grotesque/500.css';
-@import '@fontsource/bricolage-grotesque/700.css';
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
-
 /* Tokens -------------------------------------------------------------------
    Graphite ground, paper-white ink. Teal means "verified / lineage flows".
    Amber warns, red fails. Node kinds each get one quiet hue. */
-:root {
+:root, :host {
   --bg: #121419;
   --bg-raised: #191c22;
   --bg-sunk: #0d0f13;
@@ -45,7 +37,7 @@
   color-scheme: dark;
 }
 
-:root[data-theme='light'] {
+:root[data-theme='light'], :host([theme='light']) {
   --bg: #f3f2ee;
   --bg-raised: #ffffff;
   --bg-sunk: #e9e7e1;
@@ -70,7 +62,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-body {
+body, :host {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
@@ -94,9 +86,9 @@ button { font: inherit; color: inherit; }
   display: flex; flex-direction: column; gap: 4px;
   background: var(--bg-sunk);
 }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 22px; }
-.brand-word { font: 700 19px/1 var(--font-display); letter-spacing: -0.02em; }
-.brand-word span { color: var(--verified); }
+.brand { display: flex; align-items: center; gap: 11px; padding: 4px 10px 22px; }
+.brand-word { display: flex; flex-direction: column; gap: 3px; font: 700 20px/1 var(--font-display); letter-spacing: -0.02em; }
+.brand-word small { font: 500 9.5px/1 var(--font-mono); letter-spacing: 0.22em; text-transform: uppercase; color: var(--verified); }
 .nav-link {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: var(--r-md);
@@ -231,3 +223,16 @@ pre.json .ref { color: var(--verified); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+/* Embedded (micro-frontend) mode ------------------------------------------- */
+:host { display: block; position: relative; }
+.embedded { min-height: 100%; }
+.embed-bar { display: flex; align-items: center; gap: 14px; padding: 10px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.embed-brand { display: flex; align-items: center; gap: 8px; font: 700 14px var(--font-display); letter-spacing: -0.01em; }
+.embed-tabs { display: flex; gap: 2px; margin-left: 8px; flex-wrap: wrap; }
+.embed-tabs a { padding: 6px 10px; border-radius: var(--r-md); color: var(--ink-2); font-weight: 500; font-size: 13px; }
+.embed-tabs a:hover { color: var(--ink); background: var(--bg-raised); }
+.embed-tabs a.active { color: var(--ink); background: var(--bg-raised); box-shadow: inset 0 -2px 0 var(--verified); }
+.scope-chip { margin-left: auto; font: 500 11px var(--font-mono); color: var(--ink-2); padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 999px; }
+.embedded .page { padding: 20px 20px 40px; }
+.embedded .lineage-page { height: 680px; }
+.embedded .sess-list, .embedded .rules { top: 12px; }

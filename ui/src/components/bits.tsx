@@ -47,7 +47,7 @@ export function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null
   return (
     <div className="panel" style={{ padding: 14, borderColor: 'var(--fail)', color: 'var(--fail)', marginBottom: 16 }}>
-      Can't reach the AgentHub API ({error}). Start it with <code className="mono">agenthub demo</code> and reload.
+      Can't reach the Agent Authority API ({error}). Start it with <code className="mono">authority demo</code> and reload.
     </div>
   )
 }

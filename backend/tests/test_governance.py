@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import pytest
 
-from agenthub.model import NodeKind, RunState
-from agenthub.sdk import Dataset, PolicyDenied
-from agenthub.sentinel import Sentinel
-from agenthub.service import authority_chain, blast_radius
+from agent_authority.model import NodeKind, RunState
+from agent_authority.sdk import Dataset, PolicyDenied
+from agent_authority.sentinel import Sentinel
+from agent_authority.service import authority_chain, blast_radius
 
 CLIENTS = Dataset("crm", "clients", tags=["pii"], schema=[("id", "int"), ("name", "string")])
 ORDERS = Dataset("oms", "orders", schema=[("id", "int")])

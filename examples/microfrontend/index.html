@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App builder shell · Agent Authority micro-frontend example</title>
+  <!--
+    A stand-in for the Governed AI App Builder's React shell, written in plain HTML to show the web component
+    is framework-agnostic. Run `authority demo --no-browser`, then serve this folder:
+        python -m http.server 5500 -d examples/microfrontend   →  http://localhost:5500
+  -->
+  <script type="module" src="http://localhost:8000/embed/agent-authority.js"></script>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body { margin: 0; display: grid; grid-template-columns: 240px 1fr; height: 100vh; background: #f6f7f9; color: #1d2330; }
+    aside { background: #fff; border-right: 1px solid #e3e6eb; padding: 18px 12px; }
+    aside h1 { font-size: 15px; margin: 0 8px 18px; }
+    aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #7a8394; margin: 16px 8px 6px; }
+    aside button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px; border-radius: 6px; font: inherit; cursor: pointer; }
+    aside button[aria-current="true"] { background: #eef2ff; color: #3341c4; font-weight: 600; }
+    main { display: flex; flex-direction: column; min-width: 0; }
+    header { display: flex; gap: 4px; padding: 10px 20px; background: #fff; border-bottom: 1px solid #e3e6eb; align-items: center; }
+    header button { border: 0; background: none; padding: 8px 12px; border-radius: 6px; font: inherit; cursor: pointer; color: #4a5263; }
+    header button[aria-selected="true"] { background: #eef2ff; color: #3341c4; font-weight: 600; }
+    header .spacer { flex: 1; } header small { color: #7a8394; }
+    .slot { flex: 1; overflow: auto; }
+    .editor { padding: 40px; color: #7a8394; }
+    agent-authority { min-height: 100%; }
+    /* The host can restyle the embed through its CSS custom properties: */
+    agent-authority[theme="light"] { --verified: #2f6fdb; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>Northwind App Builder</h1>
+    <h2>Projects</h2>
+    <div id="projects"></div>
+  </aside>
+  <main>
+    <header>
+      <button data-tab="editor">Editor</button>
+      <button data-tab="audit">Audit record</button>
+      <button data-tab="sessions">Sessions</button>
+      <button data-tab="sentinel">Findings</button>
+      <span class="spacer"></span><small id="nav"></small>
+    </header>
+    <div class="slot" id="slot"></div>
+  </main>
+  <script type="module">
+    const API = 'http://localhost:8000'
+    const projects = ['appbuilder/trade-break-dashboard', 'appbuilder/kyc-review-queue', 'appbuilder/fx-limit-checker']
+    let project = projects[0], tab = 'audit'
+
+    async function latestSession(ns) {
+      const res = await fetch(`${API}/api/authority/sessions?namespace=${encodeURIComponent(ns)}&limit=1`)
+      return (await res.json())[0]?.run_id ?? ''
+    }
+
+    async function render() {
+      document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)))
+      document.querySelectorAll('#projects button').forEach(b => b.setAttribute('aria-current', String(b.dataset.ns === project)))
+      const slot = document.getElementById('slot')
+      if (tab === 'editor') { slot.innerHTML = '<div class="editor">Chat + live preview editor goes here.</div>'; return }
+      const el = document.createElement('agent-authority')
+      el.setAttribute('api-base', API)
+      el.setAttribute('namespace', project)
+      el.setAttribute('view', tab)
+      el.setAttribute('theme', 'light')
+      if (tab === 'audit') el.setAttribute('session-id', await latestSession(project))
+      el.getToken = async () => null            // e.g. () => msal.acquireTokenSilent(...).then(r => r.accessToken)
+      el.addEventListener('agent-authority:navigate', e => { document.getElementById('nav').textContent = e.detail.path })
+      el.addEventListener('agent-authority:open-run', e => console.log('opened run', e.detail.runId))
+      slot.replaceChildren(el)
+    }
+
+    document.getElementById('projects').append(...projects.map(ns => {
+      const b = document.createElement('button'); b.dataset.ns = ns; b.textContent = ns.split('/')[1].replaceAll('-', ' ')
+      b.onclick = () => { project = ns; render() }; return b
+    }))
+    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; render() })
+    render()
+  </script>
+</body>
+</html>

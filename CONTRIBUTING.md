@@ -1,13 +1,13 @@
 # Contributing
 
-Thanks for helping. AgentHub aims to be the place where data lineage and agent accountability meet, so issues and
+Thanks for helping. Agent Authority aims to be the place where data lineage and agent accountability meet, so issues and
 PRs from both the data-platform and the agent side are welcome.
 
 ## Dev setup
 
 ```bash
 cd backend && pip install -e ".[dev,prod]" langchain-core
-agenthub demo --no-browser          # API + demo traffic on :8000
+authority demo --no-browser          # API + demo traffic on :8000
 cd ../ui && npm install && npm run dev   # UI with hot reload on :5173 (proxies /api to :8000)
 ```
 
@@ -15,9 +15,9 @@ cd ../ui && npm install && npm run dev   # UI with hot reload on :5173 (proxies 
 
 ```bash
 cd backend
-ruff check agenthub tests
+ruff check authority tests
 pytest -q                                                    # memory store, API, SDK, LangChain
-AGENTHUB_TEST_PG_DSN=postgresql://... pytest tests/test_prod_store.py   # ClickHouse (embedded) + Postgres parity
+AUTHORITY_TEST_PG_DSN=postgresql://... pytest tests/test_prod_store.py   # ClickHouse (embedded) + Postgres parity
 cd ../ui && npx tsc -b && npm run build
 ```
 
@@ -26,9 +26,9 @@ identical answers.
 
 ## Adding a Sentinel rule
 
-1. Add a function decorated with `@rule("id", "severity", "description")` in `backend/agenthub/sentinel.py`.
+1. Add a function decorated with `@rule("id", "severity", "description")` in `backend/agent_authority/sentinel.py`.
 2. Yield `Finding`s with a `run_id` or `node_id` so the UI can link to evidence.
-3. Add a scenario to `tests/test_governance.py`, and ideally to `agenthub/demo.py` so it shows up in the demo.
+3. Add a scenario to `tests/test_governance.py`, and ideally to `agent_authority/demo.py` so it shows up in the demo.
 
 ## Pull requests
 - Keep PRs focused, and describe the user-visible change.

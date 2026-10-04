@@ -8,10 +8,10 @@ type Tab = 'authority' | 'details' | 'replay'
 const Ctx = createContext<(runId: string, tab?: Tab) => void>(() => {})
 export const useRunDrawer = () => useContext(Ctx)
 
-export function RunDrawerProvider({ children }: { children: ReactNode }) {
+export function RunDrawerProvider({ children, onOpen }: { children: ReactNode; onOpen?: (runId: string) => void }) {
   const [state, setState] = useState<{ id: string; tab: Tab } | null>(null)
   return (
-    <Ctx.Provider value={(id, tab = 'authority') => setState({ id, tab })}>
+    <Ctx.Provider value={(id, tab = 'authority') => { setState({ id, tab }); onOpen?.(id) }}>
       {children}
       {state && <RunDrawer key={state.id} runId={state.id} initialTab={state.tab} onClose={() => setState(null)}
         onSelect={(id) => setState({ id, tab: 'authority' })} />}
@@ -23,10 +23,10 @@ function RunDrawer({ runId, initialTab, onClose, onSelect }: {
   runId: string; initialTab: Tab; onClose: () => void; onSelect: (id: string) => void
 }) {
   const [tab, setTab] = useState<Tab>(initialTab)
-  const run = usePoll(() => get<Run & { dynamic_facets: Record<string, unknown>; io: unknown[] }>(`/api/hub/runs/${runId}`), [runId])
-  const auth = usePoll(() => get<Authority>(`/api/hub/runs/${runId}/authority`), [runId])
+  const run = usePoll(() => get<Run & { dynamic_facets: Record<string, unknown>; io: unknown[] }>(`/api/authority/runs/${runId}`), [runId])
+  const auth = usePoll(() => get<Authority>(`/api/authority/runs/${runId}/authority`), [runId])
   const [withPayloads, setWithPayloads] = useState(false)
-  const replay = usePoll(() => get<ReplayEvent[]>(`/api/hub/runs/${runId}/replay`, { payloads: withPayloads }), [runId, withPayloads])
+  const replay = usePoll(() => get<ReplayEvent[]>(`/api/authority/runs/${runId}/replay`, { payloads: withPayloads }), [runId, withPayloads])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()

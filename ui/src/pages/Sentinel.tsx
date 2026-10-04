@@ -13,8 +13,8 @@ export function SentinelPage() {
   const nav = useNavigate()
   const [level, setLevel] = useState<Severity | 'all'>('all')
   const [rule, setRule] = useState<string | null>(null)
-  const findings = usePoll(() => get<Finding[]>('/api/hub/findings'), [], 6000)
-  const rules = usePoll(() => get<RuleInfo[]>('/api/hub/rules'), [])
+  const findings = usePoll(() => get<Finding[]>('/api/authority/findings'), [], 6000)
+  const rules = usePoll(() => get<RuleInfo[]>('/api/authority/rules'), [])
 
   const byRule = (findings.data ?? []).reduce<Record<string, number>>((m, f) => ({ ...m, [f.rule]: (m[f.rule] ?? 0) + 1 }), {})
   const list = (findings.data ?? []).filter((f) => (level === 'all' || f.severity === level) && (!rule || f.rule === rule))

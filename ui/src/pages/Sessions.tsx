@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ago, get, ms, usePoll, type Run, type Session } from '../api'
 import { decisionTone, Empty, ErrorNote, KIND_ICON, Pill } from '../components/bits'
 import { useRunDrawer } from '../components/RunDrawer'
@@ -15,7 +15,7 @@ function flatten(r: Run, depth = 0, out: { r: Run; depth: number }[] = []) {
 export function SessionsPage() {
   const { id } = useParams()
   const nav = useNavigate()
-  const sessions = usePoll(() => get<Session[]>('/api/hub/sessions', { limit: 60 }), [], 4000)
+  const sessions = usePoll(() => get<Session[]>('/api/authority/sessions', { limit: 60 }), [], 4000)
   const selected = id ?? sessions.data?.[0]?.run_id
 
   return (
@@ -53,7 +53,7 @@ export function SessionsPage() {
 
 function SessionTimeline({ id }: { id: string }) {
   const open = useRunDrawer()
-  const t = usePoll(() => get<TreeResp>(`/api/hub/sessions/${id}/tree`), [id], 5000)
+  const t = usePoll(() => get<TreeResp>(`/api/authority/sessions/${id}/tree`), [id], 5000)
   if (!t.data) return <div className="panel"><div className="panel-body muted">Loading…</div></div>
   const rows = flatten(t.data.tree)
   const times = rows.flatMap(({ r }) => [r.start_time, r.end_time, r.last_event_time]).filter(Boolean).map((x) => new Date(x!).getTime())
@@ -68,7 +68,10 @@ function SessionTimeline({ id }: { id: string }) {
           <h2 className="panel-title" style={{ fontSize: 15 }}>{root.job}</h2>
           <div className="faint mono" style={{ marginTop: 2 }}>{root.on_behalf_of ?? 'no person attached'} · {rows.length} runs · {ms(span)}</div>
         </div>
-        <button className="btn" onClick={() => open(root.run_id)}>Chain of authority</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link className="btn" to={`/audit/${root.run_id}`}>Audit record</Link>
+          <button className="btn ghost" onClick={() => open(root.run_id)}>Chain of authority</button>
+        </div>
       </div>
       <div className="tl" role="list">
         {rows.map(({ r, depth }) => {

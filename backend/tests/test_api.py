@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from agenthub.api.main import create_app
-from agenthub.demo import DemoTraffic
-from agenthub.storage.memory import MemoryStore
+from agent_authority.api.main import create_app
+from agent_authority.demo import DemoTraffic
+from agent_authority.storage.memory import MemoryStore
 
 from .conftest import new_id, spark_event
 
@@ -23,7 +23,7 @@ def test_ingest_single_and_batch(client):
     assert r.status_code == 201 and r.json()["accepted"] == 1
     r = client.post("/api/v1/lineage", json=[spark_event(rid, "COMPLETE", minute=3)])
     assert r.status_code == 201
-    run = client.get(f"/api/hub/runs/{rid}").json()
+    run = client.get(f"/api/authority/runs/{rid}").json()
     assert run["state"] == "COMPLETE" and run["duration_ms"] == 180_000
 
 
@@ -49,22 +49,34 @@ def test_marquez_compatible_reads(client):
 
 
 def test_hub_endpoints(client):
-    s = client.get("/api/hub/stats").json()
+    s = client.get("/api/authority/stats").json()
     assert s["dedup_ratio"] > 1 and s["events_in"] > 100
-    agents = client.get("/api/hub/agents").json()
+    agents = client.get("/api/authority/agents").json()
     assert any(a["name"] == "kyc-checker" for a in agents)
-    sessions = client.get("/api/hub/sessions").json()
-    tree = client.get(f"/api/hub/sessions/{sessions[0]['run_id']}/tree").json()["tree"]
+    sessions = client.get("/api/authority/sessions").json()
+    tree = client.get(f"/api/authority/sessions/{sessions[0]['run_id']}/tree").json()["tree"]
     assert tree["kind"] == "session"
-    findings = client.get("/api/hub/findings").json()
+    findings = client.get("/api/authority/findings").json()
     assert {f["rule"] for f in findings} >= {"unattributed-side-effect", "deep-delegation"}
     f = next(f for f in findings if f["run_id"])
-    auth = client.get(f"/api/hub/runs/{f['run_id']}/authority").json()
+    auth = client.get(f"/api/authority/runs/{f['run_id']}/authority").json()
     assert auth["hops"][0]["kind"] == "session"
-    br = client.get("/api/hub/blast-radius", params={"node": "dataset:abfss://lake@northwind:raw.trades"}).json()
+    br = client.get("/api/authority/blast-radius", params={"node": "dataset:abfss://lake@northwind:raw.trades"}).json()
     assert any(a["name"] == "risk.var_daily" for a in br["affected"])
-    replay = client.get(f"/api/hub/runs/{f['run_id']}/replay").json()
+    replay = client.get(f"/api/authority/runs/{f['run_id']}/replay").json()
     assert replay and replay[0]["event"]["producer"]
-    assert client.get("/api/hub/rules").json()
-    node = client.get("/api/hub/node", params={"id": "dataset:abfss://lake@northwind:curated.clients"}).json()
+    assert client.get("/api/authority/rules").json()
+    node = client.get("/api/authority/node", params={"id": "dataset:abfss://lake@northwind:curated.clients"}).json()
     assert node["attrs"]["tags"] == ["gdpr", "pii"]
+
+
+def test_scoping_for_embedded_views(client):
+    ns = "appbuilder/trade-break-dashboard"
+    sessions = client.get("/api/authority/sessions", params={"namespace": ns}).json()
+    assert sessions and all(s["namespace"] == ns for s in sessions)
+    sid = sessions[0]["run_id"]
+    tree = client.get(f"/api/authority/sessions/{sid}/tree").json()["tree"]
+    assert tree["job"].startswith("build: ")
+    for f in client.get("/api/authority/findings", params={"session": sid}).json():
+        assert f["root_run_id"] == sid
+    assert all(a["namespace"] == ns for a in client.get("/api/authority/agents", params={"namespace": ns}).json())

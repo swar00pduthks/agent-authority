@@ -111,11 +111,33 @@ export interface BlastRadius {
 
 export interface ReplayEvent { event_type: string; event_time: string; bytes_in: number; bytes_stored: number; event: unknown }
 
+/** Runtime configuration. The standalone app uses defaults; the web component sets these from its attributes. */
+export interface AuthorityConfig {
+  /** Base URL of the Agent Authority API, e.g. https://authority.internal ('' = same origin). */
+  apiBase: string
+  /** Scope every view to one namespace, e.g. an app-builder project. */
+  namespace?: string
+  /** Returns a bearer token (e.g. an Entra access token) for API calls. */
+  getToken?: () => string | null | Promise<string | null>
+}
+
+export const config: AuthorityConfig = { apiBase: '' }
+
+export function configure(c: Partial<AuthorityConfig>) {
+  Object.assign(config, c)
+}
+
+const SCOPED = ['/api/authority/sessions', '/api/authority/agents', '/api/authority/findings', '/api/authority/runs', '/api/authority/graph']
+
 export async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-  const q = params
-    ? '?' + Object.entries(params).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&')
-    : ''
-  const res = await fetch(`${path}${q}`)
+  const p: Record<string, string | number | boolean | undefined> = { ...params }
+  if (config.namespace && p.namespace === undefined && SCOPED.includes(path)) p.namespace = config.namespace
+  const entries = Object.entries(p).filter(([, v]) => v !== undefined && v !== '')
+  const q = entries.length ? '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&') : ''
+  const headers: Record<string, string> = {}
+  const token = config.getToken ? await config.getToken() : null
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(`${config.apiBase.replace(/\/$/, '')}${path}${q}`, { headers })
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${path}`)
   return res.json() as Promise<T>
 }

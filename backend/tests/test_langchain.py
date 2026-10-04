@@ -8,9 +8,9 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel  #
 from langchain_core.runnables import RunnableLambda  # noqa: E402
 from langchain_core.tools import tool  # noqa: E402
 
-from agenthub.integrations.langchain import AgentHubCallbackHandler  # noqa: E402
-from agenthub.model import NodeKind  # noqa: E402
-from agenthub.service import authority_chain  # noqa: E402
+from agent_authority.integrations.langchain import AuthorityCallbackHandler  # noqa: E402
+from agent_authority.model import NodeKind  # noqa: E402
+from agent_authority.service import authority_chain  # noqa: E402
 
 
 @tool
@@ -30,7 +30,7 @@ def test_langchain_run_tree_maps_to_agent_lineage(hub, store):
 
     chain = RunnableLambda(researcher).with_config(run_name="researcher") | \
         RunnableLambda(trader).with_config(run_name="trader")
-    handler = AgentHubCallbackHandler(hub, session_name="desk-graph", on_behalf_of="user:alice",
+    handler = AuthorityCallbackHandler(hub, session_name="desk-graph", on_behalf_of="user:alice",
                                       agents={"researcher", "trader"}, owner="markets-ai",
                                       side_effecting_tools={"place_order"})
     assert chain.invoke({"q": "what to buy?"}, config={"callbacks": [handler]}) == "ordered ACME"

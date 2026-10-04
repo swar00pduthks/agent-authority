@@ -5,9 +5,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agenthub.collector.pipeline import Collector
-from agenthub.sdk import AgentHub, CallbackTransport
-from agenthub.storage.memory import MemoryStore
+from agent_authority.collector.pipeline import Collector
+from agent_authority.sdk import Authority, CallbackTransport
+from agent_authority.storage.memory import MemoryStore
 
 T0 = datetime(2026, 10, 1, 9, 0, tzinfo=UTC)
 
@@ -58,12 +58,12 @@ def collector(store: MemoryStore) -> Collector:
 
 
 @pytest.fixture
-def hub(collector: Collector) -> AgentHub:
+def hub(collector: Collector) -> Authority:
     def emit(ev: dict) -> None:
         collector.process(ev)
         collector.flush()
 
-    return AgentHub(transport=CallbackTransport(emit), namespace="agents")
+    return Authority(transport=CallbackTransport(emit), namespace="agents")
 
 
 def new_id() -> str:

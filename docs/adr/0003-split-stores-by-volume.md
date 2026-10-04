@@ -20,4 +20,4 @@ with run count; structure grows with change. Postgres handles the first two poor
   seconds-to-minutes latency and is heavier to run for a default install.
 
 ## Consequences
-Two databases to operate in production. `agenthub demo` needs none.
+Two databases to operate in production. `authority demo` needs none.

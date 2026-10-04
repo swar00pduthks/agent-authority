@@ -59,7 +59,7 @@ function Graph() {
   const [blast, setBlast] = useState<BlastRadius | null>(null)
   const [people, setPeople] = useState(false)
   const nsList = usePoll(() => get<{ namespaces: { name: string }[] }>('/api/v1/namespaces'), [])
-  const raw = usePoll(() => get<{ nodes: GNode[]; edges: GEdge[] }>('/api/hub/graph', { namespace: ns || undefined }), [ns], 10000)
+  const raw = usePoll(() => get<{ nodes: GNode[]; edges: GEdge[] }>('/api/authority/graph', { namespace: ns || undefined }), [ns], 10000)
   const data = useMemo(() => {
     if (!raw.data || people) return raw.data
     const keep = new Set(raw.data.nodes.filter((n) => n.kind !== 'identity').map((n) => n.id))
@@ -97,7 +97,7 @@ function Graph() {
 
   useEffect(() => { const t = setTimeout(() => flow.fitView({ padding: 0.12, duration: 300, maxZoom: 1.1 }), 60); return () => clearTimeout(t) }, [ns, graph.data?.nodes.length, flow])
 
-  const runBlast = async (id: string) => setBlast(await get<BlastRadius>('/api/hub/blast-radius', { node: id }))
+  const runBlast = async (id: string) => setBlast(await get<BlastRadius>('/api/authority/blast-radius', { node: id }))
 
   return (
     <div className="page lineage-page">

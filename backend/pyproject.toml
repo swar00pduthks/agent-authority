@@ -3,7 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agenthub"
+name = "agent-authority"
 version = "0.1.0"
 description = "OpenLineage-native lineage and governance hub for data pipelines and AI agents"
 readme = "README.md"
@@ -24,15 +24,15 @@ prod = ["clickhouse-connect>=0.7", "psycopg[binary]>=3.1", "psycopg-pool>=3.2", 
 dev = ["pytest>=8", "httpx>=0.27", "chdb>=2.0", "psycopg[binary]>=3.1", "ruff>=0.4"]
 
 [project.scripts]
-agenthub = "agenthub.cli:main"
-agenthub-api = "agenthub.api.main:run"
-agenthub-collector = "agenthub.collector.kafka_consumer:main"
+authority = "agent_authority.cli:main"
+authority-api = "agent_authority.api.main:run"
+authority-collector = "agent_authority.collector.kafka_consumer:main"
 
 [tool.setuptools.packages.find]
-include = ["agenthub*"]
+include = ["agent_authority*"]
 
 [tool.setuptools.package-data]
-agenthub = ["static/**/*", "static/*", "storage/sql/*.sql"]
+agent_authority = ["static/**/*", "static/*", "storage/sql/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

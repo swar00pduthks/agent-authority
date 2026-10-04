@@ -1,8 +1,8 @@
-"""Minimal agent instrumentation. Run `agenthub demo` first, then: python examples/quickstart_agent.py"""
+"""Minimal agent instrumentation. Run `authority demo` first, then: python examples/quickstart_agent.py"""
 
-from agenthub.sdk import AgentHub, Dataset
+from agent_authority.sdk import Authority, Dataset
 
-hub = AgentHub(__import__("os").getenv("AGENTHUB_URL", "http://localhost:8000"), namespace="quickstart")
+hub = Authority(__import__("os").getenv("AUTHORITY_URL", "http://localhost:8000"), namespace="quickstart")
 CLIENTS = Dataset("crm", "clients", tags=["pii"], schema=[("id", "bigint"), ("name", "string")])
 ORDERS = Dataset("oms", "orders")
 

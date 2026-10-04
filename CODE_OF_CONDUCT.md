@@ -1,9 +1,9 @@
 # Code of Conduct
 
-AgentHub adopts the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+Agent Authority adopts the [Contributor Covenant, version 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
 In short: be respectful, assume good intent, and keep discussion about the work. Harassment of any kind is not
 tolerated.
 
-Report unacceptable behaviour privately to the maintainers at **conduct@agenthub.dev** (placeholder: replace
+Report unacceptable behaviour privately to the maintainers at **conduct@agent_authority.dev** (placeholder: replace
 before publishing). All reports are reviewed and kept confidential.

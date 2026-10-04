@@ -2,6 +2,6 @@
 **/__pycache__
 **/.pytest_cache
 **/.ruff_cache
-backend/agenthub/static
+backend/agent_authority/static
 ui/dist
 .git

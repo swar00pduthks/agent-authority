@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 
-from agenthub.collector.facets import dehydrate, facet_hash, rehydrate
-from agenthub.collector.policy import AgentFacetView, CapturePolicy
-from agenthub.model import EdgeType, RunState
-from agenthub.service import replay
+from agent_authority.collector.facets import dehydrate, facet_hash, rehydrate
+from agent_authority.collector.policy import AgentFacetView, CapturePolicy
+from agent_authority.model import EdgeType, RunState
+from agent_authority.service import replay
 
 from .conftest import new_id, spark_event
 
@@ -101,7 +101,7 @@ def test_payloads_are_offloaded(hub, store):
         with hub.agent("a", owner="team"):
             pass
     big = {"messages": ["hello " * 500]}
-    from agenthub.collector.policy import CapturePolicy as CP  # noqa: F401
+    from agent_authority.collector.policy import CapturePolicy as CP  # noqa: F401
     with hub.session("s2", on_behalf_of="user:bob"):
         with hub.agent("a2", owner="team", prompt=big):
             pass

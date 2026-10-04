@@ -1,17 +1,17 @@
 <div align="center">
 
-# AgentHub
+# Agent Authority
 
 **Know what your agents did, and on whose authority.**
 
 Lineage and governance for data pipelines *and* AI agents, built on [OpenLineage](https://openlineage.io).
 
-[![ci](https://github.com/agent-hub/agent-hub/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+[![ci](https://github.com/agent-authority/agent-authority/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
 ![license](https://img.shields.io/badge/license-Apache--2.0-blue)
 ![python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![openlineage](https://img.shields.io/badge/OpenLineage-compatible-45c4b0)
 
-<img src="docs/assets/overview.png" alt="AgentHub overview: dehydration meter, live activity, Sentinel findings" width="900">
+<img src="docs/assets/overview.png" alt="Agent Authority overview: dehydration meter, live activity, Sentinel findings" width="900">
 
 </div>
 
@@ -21,7 +21,7 @@ Agents are starting to act like colleagues: they read client data, place orders,
 other agents. When something goes wrong, the questions are always the same. **Who asked for this? Which agents
 touched it? What data did they change? Was every step allowed?**
 
-AgentHub answers those questions from lineage you may already emit. It is a drop-in OpenLineage backend that:
+Agent Authority answers those questions from lineage you may already emit. It is a drop-in OpenLineage backend that:
 
 - **stores lineage 4–12× smaller** than the raw events by content-addressing the facets that repeat in every event,
 - **traces every agent action back to a person** through a chain of authority, hop by hop,
@@ -31,8 +31,8 @@ AgentHub answers those questions from lineage you may already emit. It is a drop
 ## Try it in 60 seconds
 
 ```bash
-pip install "git+https://github.com/agent-hub/agent-hub.git#subdirectory=backend"
-agenthub demo
+pip install "git+https://github.com/agent-authority/agent-authority.git#subdirectory=backend"
+authority demo
 ```
 
 This opens a hub at `http://localhost:8000` running live synthetic traffic from "Northwind Capital": Spark
@@ -57,9 +57,9 @@ full schema, SQL, Spark logical plan and producer URLs. Marquez stores each even
 versioned tables in Postgres, so storage grows with run count rather than with how often anything changes. Agent
 workloads make this much worse: one session can emit hundreds of events.
 
-AgentHub keeps OpenLineage on the wire and redesigns what happens behind it:
+Agent Authority keeps OpenLineage on the wire and redesigns what happens behind it:
 
-| | Marquez | AgentHub |
+| | Marquez | Agent Authority |
 |---|---|---|
 | Ingest API | `POST /api/v1/lineage` | Same endpoint, drop-in, plus Kafka |
 | Static facets (schema, SQL, plan) | Stored per event | Stored **once**, content-addressed |
@@ -72,7 +72,7 @@ AgentHub keeps OpenLineage on the wire and redesigns what happens behind it:
 
 Measured on the bundled synthetic workloads: Spark lineage is **~12× smaller**; agent lineage is **~3× smaller**,
 where the remaining bytes are mostly unique prompts moved to blob storage. Your numbers will differ, so run
-`agenthub demo` or point a week of your own events at it and read the meter.
+`authority demo` or point a week of your own events at it and read the meter.
 
 ## How it works
 
@@ -108,9 +108,9 @@ The design rationale is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and the 
 ## Instrument your agents
 
 ```python
-from agenthub.sdk import AgentHub, Dataset
+from agent_authority.sdk import Authority, Dataset
 
-hub = AgentHub("http://localhost:8000", namespace="trading")
+hub = Authority("http://localhost:8000", namespace="trading")
 CLIENTS = Dataset("crm", "clients", tags=["pii"])
 
 with hub.session("desk-assistant", on_behalf_of="user:alice"):
@@ -125,9 +125,9 @@ with hub.session("desk-assistant", on_behalf_of="user:alice"):
 **LangChain / LangGraph:** pass a callback, no code changes inside your graph.
 
 ```python
-from agenthub.integrations.langchain import AgentHubCallbackHandler
+from agent_authority.integrations.langchain import AuthorityCallbackHandler
 
-handler = AgentHubCallbackHandler(hub, session_name="research-graph", on_behalf_of="user:alice",
+handler = AuthorityCallbackHandler(hub, session_name="research-graph", on_behalf_of="user:alice",
                                   agents={"researcher", "writer"}, side_effecting_tools={"send_email"})
 graph.invoke(inputs, config={"callbacks": [handler]})
 ```
@@ -135,16 +135,33 @@ graph.invoke(inputs, config={"callbacks": [handler]})
 Events are standard OpenLineage `RunEvent`s with `ParentRunFacet` linkage and an `agent` run facet
 ([spec](docs/agent-facet.md)), so any OpenLineage consumer can still read them.
 
+## Embed it anywhere (micro-frontend)
+
+Agent Authority ships a framework-agnostic web component, so any product can show an audit record, sessions or
+findings for its own scope. The [Governed AI App Builder integration](docs/integrations/app-builder.md) is the
+reference example.
+
+```html
+<script type="module" src="https://authority.internal/embed/agent-authority.js"></script>
+<agent-authority view="audit" session-id="…" namespace="appbuilder/kyc-review-queue"
+                 api-base="https://authority.internal" theme="light"></agent-authority>
+```
+
+<img src="docs/assets/embed-audit.png" alt="Audit record embedded in an app-builder shell" width="900">
+
+It renders in a shadow DOM, takes an Entra or OIDC token through a `getToken` property, emits navigation events
+to the host, and can be restyled through CSS custom properties.
+
 ## Point existing OpenLineage emitters at it
 
-AgentHub accepts the same HTTP endpoint as Marquez. For Spark:
+Agent Authority accepts the same HTTP endpoint as Marquez. For Spark:
 
 ```properties
 spark.openlineage.transport.type=http
-spark.openlineage.transport.url=http://agenthub:8000
+spark.openlineage.transport.url=http://authority:8000
 ```
 
-At volume, use the Kafka transport (`transport.type=kafka`, topic `openlineage.events`) and run `agenthub collect`.
+At volume, use the Kafka transport (`transport.type=kafka`, topic `openlineage.events`) and run `authority collect`.
 
 ## Run the full stack
 
@@ -155,14 +172,14 @@ docker compose --profile demo up -d    # add live demo traffic through Kafka
 
 | Command | What it does |
 |---|---|
-| `agenthub demo` | In-memory hub, live demo traffic, web UI |
-| `agenthub serve` | API + UI (`AGENTHUB_STORE=memory\|prod`) |
-| `agenthub collect` | Kafka → collector → ClickHouse + Postgres |
-| `agenthub seed --url URL` / `--kafka HOST` | Send demo traffic to a hub, Marquez or Kafka |
-| `agenthub scan --fail-on` | Print Sentinel findings; exits 2 on critical or high (for CI gates) |
+| `authority demo` | In-memory hub, live demo traffic, web UI |
+| `authority serve` | API + UI (`AUTHORITY_STORE=memory\|prod`) |
+| `authority collect` | Kafka → collector → ClickHouse + Postgres |
+| `authority seed --url URL` / `--kafka HOST` | Send demo traffic to a hub, Marquez or Kafka |
+| `authority scan --fail-on` | Print Sentinel findings; exits 2 on critical or high (for CI gates) |
 
-Configuration is by environment variable (`CLICKHOUSE_*`, `POSTGRES_DSN`, `KAFKA_*`, `AGENTHUB_POLICY`,
-`AGENTHUB_API_KEY`). See [docker-compose.yml](docker-compose.yml) and [deploy/policy.yaml](deploy/policy.yaml).
+Configuration is by environment variable (`CLICKHOUSE_*`, `POSTGRES_DSN`, `KAFKA_*`, `AUTHORITY_POLICY`,
+`AUTHORITY_API_KEY`). See [docker-compose.yml](docker-compose.yml) and [deploy/policy.yaml](deploy/policy.yaml).
 
 ## Sentinel rules
 
@@ -176,12 +193,12 @@ Configuration is by environment variable (`CLICKHOUSE_*`, `POSTGRES_DSN`, `KAFKA
 | `new-tool` | info | An agent used a tool for the first time |
 
 Rules are plain Python functions. Add your own with `@rule("my-rule", "high", "description")` in
-[`sentinel.py`](backend/agenthub/sentinel.py).
+[`sentinel.py`](backend/agent_authority/sentinel.py).
 
 ## Project layout
 
 ```
-backend/agenthub/
+backend/agent_authority/
   collector/     dehydration, capture policy, pipeline, Kafka consumer
   storage/       memory · ClickHouse · Postgres · composite, SQL schemas
   api/           FastAPI: OpenLineage ingest, Marquez-compatible reads, governance API
@@ -195,11 +212,11 @@ docs/            architecture, ADRs, agent facet spec, roadmap
 
 ## Status
 
-AgentHub is **v0.1**: the core works end to end and is tested, including parity tests that check the in-memory
+Agent Authority is **v0.1**: the core works end to end and is tested, including parity tests that check the in-memory
 and ClickHouse + Postgres stores give identical answers. The APIs may still change. See the
 [roadmap](docs/ROADMAP.md). Contributions are welcome; start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
-AgentHub is an independent project. It is not affiliated with the OpenLineage project or the LF AI & Data
+Agent Authority is an independent project. It is not affiliated with the OpenLineage project or the LF AI & Data
 Foundation; it builds on their open specification.
 
 ## License

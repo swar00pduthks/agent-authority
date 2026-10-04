@@ -2,7 +2,7 @@
 
 ## v0.2: production hardening
 - [ ] Streaming Sentinel: evaluate rules in the collector and publish findings to Kafka / webhooks
-- [ ] Enforcement hook: `POST /api/hub/check` for gateways to ask "should this tool call proceed?" with the same rules
+- [ ] Enforcement hook: `POST /api/authority/check` for gateways to ask "should this tool call proceed?" with the same rules
 - [ ] Keep the whole session subtree when any run in it fails (`on_error: keep_subtree`)
 - [ ] Auth: OIDC for the UI, per-namespace API keys, row-level access by namespace
 - [ ] PII redaction hook for offloaded payloads

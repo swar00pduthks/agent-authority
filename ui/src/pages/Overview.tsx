@@ -9,9 +9,9 @@ const SEV: Severity[] = ['critical', 'high', 'medium', 'low', 'info']
 
 export function OverviewPage({ stats }: { stats: Stats | null }) {
   const open = useRunDrawer()
-  const runs = usePoll(() => get<Run[]>('/api/hub/runs', { limit: 16 }), [], 2000)
-  const findings = usePoll(() => get<Finding[]>('/api/hub/findings'), [], 6000)
-  const agents = usePoll(() => get<Agent[]>('/api/hub/agents'), [], 6000)
+  const runs = usePoll(() => get<Run[]>('/api/authority/runs', { limit: 16 }), [], 2000)
+  const findings = usePoll(() => get<Finding[]>('/api/authority/findings'), [], 6000)
+  const agents = usePoll(() => get<Agent[]>('/api/authority/agents'), [], 6000)
 
   const counts = SEV.map((s) => [s, findings.data?.filter((f) => f.severity === s).length ?? 0] as const)
   const total = counts.reduce((a, [, n]) => a + n, 0)

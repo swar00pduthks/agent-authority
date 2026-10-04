@@ -6,7 +6,9 @@ __pycache__/
 .venv/
 node_modules/
 ui/dist/
-backend/agenthub/static/
+backend/agent_authority/static/
 .env
 *.log
 data/
+build/
+*.egg-info/

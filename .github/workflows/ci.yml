@@ -11,12 +11,12 @@ jobs:
     services:
       postgres:
         image: postgres:16-alpine
-        env: { POSTGRES_USER: agenthub, POSTGRES_PASSWORD: agenthub, POSTGRES_DB: agenthub }
+        env: { POSTGRES_USER: authority, POSTGRES_PASSWORD: authority, POSTGRES_DB: authority }
         ports: ["5432:5432"]
-        options: --health-cmd "pg_isready -U agenthub" --health-interval 5s --health-retries 20
+        options: --health-cmd "pg_isready -U authority" --health-interval 5s --health-retries 20
       clickhouse:
         image: clickhouse/clickhouse-server:24.8
-        env: { CLICKHOUSE_USER: agenthub, CLICKHOUSE_PASSWORD: agenthub }
+        env: { CLICKHOUSE_USER: authority, CLICKHOUSE_PASSWORD: authority }
         ports: ["8123:8123"]
     defaults: { run: { working-directory: backend } }
     steps:
@@ -24,18 +24,18 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
       - run: pip install -e ".[dev,prod]" langchain-core
-      - run: ruff check agenthub tests
+      - run: ruff check authority tests
       - name: tests (memory store + embedded ClickHouse parity)
         run: pytest -q
         env:
-          AGENTHUB_TEST_PG_DSN: postgresql://agenthub:agenthub@localhost:5432/agenthub
+          AUTHORITY_TEST_PG_DSN: postgresql://authority:authority@localhost:5432/authority
       - name: tests (ClickHouse server parity)
         run: pytest -q tests/test_prod_store.py
         env:
-          AGENTHUB_TEST_PG_DSN: postgresql://agenthub:agenthub@localhost:5432/agenthub
-          AGENTHUB_TEST_CH_HOST: localhost
-          AGENTHUB_TEST_CH_USER: agenthub
-          AGENTHUB_TEST_CH_PASSWORD: agenthub
+          AUTHORITY_TEST_PG_DSN: postgresql://authority:authority@localhost:5432/authority
+          AUTHORITY_TEST_CH_HOST: localhost
+          AUTHORITY_TEST_CH_USER: authority
+          AUTHORITY_TEST_CH_PASSWORD: authority
 
   ui:
     runs-on: ubuntu-latest
@@ -54,10 +54,10 @@ jobs:
     needs: [backend, ui]
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t agenthub:ci .
+      - run: docker build -t agent-authority:ci .
       - name: smoke test
         run: |
-          docker run -d --name hub -p 8000:8000 agenthub:ci agenthub demo --host 0.0.0.0 --no-browser
-          for i in $(seq 1 30); do curl -sf localhost:8000/api/hub/health && break; sleep 1; done
-          curl -sf localhost:8000/api/hub/stats | python -c "import json,sys; s=json.load(sys.stdin); assert s['events_in'] > 100, s"
-          curl -sf localhost:8000/ | grep -q AgentHub
+          docker run -d --name hub -p 8000:8000 agent-authority:ci authority demo --host 0.0.0.0 --no-browser
+          for i in $(seq 1 30); do curl -sf localhost:8000/api/authority/health && break; sleep 1; done
+          curl -sf localhost:8000/api/authority/stats | python -c "import json,sys; s=json.load(sys.stdin); assert s['events_in'] > 100, s"
+          curl -sf localhost:8000/ | grep -q Agent Authority

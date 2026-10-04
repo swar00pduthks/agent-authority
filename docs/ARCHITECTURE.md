@@ -1,6 +1,6 @@
 # Architecture
 
-AgentHub keeps **OpenLineage on the wire** and changes everything behind it. The design follows from one
+Agent Authority keeps **OpenLineage on the wire** and changes everything behind it. The design follows from one
 observation: a lineage system stores three things with very different volume profiles, and Marquez puts all
 three in one Postgres database.
 
@@ -14,7 +14,7 @@ three in one Postgres database.
 Emitters ──HTTP──▶ API ─┐
          ──Kafka─▶ Collector ─▶ Batch ─┬─▶ ClickHouse: facet_blob, payload_blob, runs, run_io, raw_events,
                                        │               tool_aggregates, ingest_stats
-                                       └─▶ Postgres:   ah_nodes, ah_node_versions, ah_edges
+                                       └─▶ Postgres:   aa_nodes, aa_node_versions, aa_edges
 API (Marquez-compatible + /api/hub) ◀── both stores ──▶ Web UI, Sentinel
 ```
 
@@ -32,7 +32,7 @@ Static facets are canonicalised (sorted keys, compact JSON), hashed with SHA-256
 with `{"$ref": "<hash>"}`. The `_producer` / `_schemaURL` envelope, identical across millions of facets, is
 interned the same way as `{"$meta": "<hash>"}`, as is the event-level `producer` / `schemaURL`.
 
-`rehydrate()` reverses this exactly; `GET /api/hub/runs/{id}/replay` rebuilds the original events for auditors.
+`rehydrate()` reverses this exactly; `GET /api/authority/runs/{id}/replay` rebuilds the original events for auditors.
 The policy is configurable (`FacetPolicy`), and facets already dehydrated upstream pass through untouched.
 
 ## 2. Run merging in storage
@@ -112,16 +112,16 @@ into Apache AGE for openCypher path queries is a sync job, not a redesign (see [
 * The collector is horizontally scalable: run one per few Kafka partitions. The caches only suppress writes, so
   losing them costs idempotent rewrites, never correctness.
 * ClickHouse inserts are batched (`COLLECTOR_BATCH_MAX`, `COLLECTOR_BATCH_MS`); avoid tiny batches.
-* `runs` and `run_io` have a TTL (`AGENTHUB_RUN_TTL_DAYS`, default 30). `raw_events` has none by default; attach a
+* `runs` and `run_io` have a TTL (`AUTHORITY_RUN_TTL_DAYS`, default 30). `raw_events` has none by default; attach a
   storage policy to move old parts to object storage, or export to Iceberg (roadmap).
 * Column-level lineage is the biggest graph-volume risk. It will get its own table rather than going into
-  `ah_edges`.
+  `aa_edges`.
 
 ## 8. Platform variants
 
 The design is platform-neutral. The same components map onto a lakehouse:
 
-| AgentHub OSS | Databricks | Open lakehouse |
+| Agent Authority OSS | Databricks | Open lakehouse |
 |---|---|---|
 | Kafka | Event Hubs | Kafka |
 | Collector | Lakeflow / Structured Streaming | Flink |

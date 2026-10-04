@@ -6,8 +6,8 @@ import './agents.css'
 
 export function AgentsPage() {
   const open = useRunDrawer()
-  const agents = usePoll(() => get<Agent[]>('/api/hub/agents'), [], 5000)
-  const findings = usePoll(() => get<Finding[]>('/api/hub/findings'), [], 8000)
+  const agents = usePoll(() => get<Agent[]>('/api/authority/agents'), [], 5000)
+  const findings = usePoll(() => get<Finding[]>('/api/authority/findings'), [], 8000)
   const [q, setQ] = useState('')
 
   const risk = useMemo(() => {
@@ -26,7 +26,7 @@ export function AgentsPage() {
     !q || [a.name, a.owner, ...a.tools, ...a.models].join(' ').toLowerCase().includes(q.toLowerCase()))
 
   const openLatest = async (a: Agent) => {
-    const [r] = await get<Run[]>('/api/hub/runs', { agent_id: a.agent_id, kind: 'agent', limit: 1 })
+    const [r] = await get<Run[]>('/api/authority/runs', { agent_id: a.agent_id, kind: 'agent', limit: 1 })
     if (r) open(r.run_id)
   }
 
