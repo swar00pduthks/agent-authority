@@ -159,7 +159,8 @@ def sensitive_data_access(ctx: Context) -> Iterable[Finding]:
     run_ids = {r.run_id: r for r in ctx.runs if r.job_kind in (NodeKind.TOOL, NodeKind.AGENT, NodeKind.STEP)}
     if not run_ids:
         return
-    for io in ctx.store.run_io(limit=20_000):
+    seen: set[tuple[str | None, str, str]] = set()
+    for io in ctx.store.run_io(limit=20_000):  # newest first: report the latest access per agent+dataset
         r = run_ids.get(io.run_id)
         if not r:
             continue
@@ -168,6 +169,10 @@ def sensitive_data_access(ctx: Context) -> Iterable[Finding]:
         hit = tags & SENSITIVE_TAGS
         if hit and (r.policy_decision or "").lower() not in ALLOW:
             agent = _nearest_agent(ctx.chain(r))
+            key = (agent.agent_id if agent else r.job_name, io.dataset_id, io.direction)
+            if key in seen:
+                continue
+            seen.add(key)
             yield Finding(
                 "sensitive-data-access", "medium",
                 f"{'Wrote' if io.direction == 'out' else 'Read'} {', '.join(sorted(hit))} data: {node.name}",
@@ -224,13 +229,27 @@ class Sentinel:
     def scan(self, severity: str | None = None) -> list[dict[str, Any]]:
         runs = self.store.list_runs(limit=self.window)
         ctx = Context(self.store, runs, self.params)
-        findings: dict[str, Finding] = {}
+        # Group repeats of the same problem (rule + agent + target) into one finding with an occurrence count,
+        # keeping the most recent instance as the representative.
+        groups: dict[tuple[str, str | None, str | None, str], Finding] = {}
         for r in RULES.values():
             if r.id in self.disabled:
                 continue
             for f in r.fn(ctx):
-                findings.setdefault(f.id, f)
-        out = sorted(findings.values(), key=lambda f: (SEVERITY_ORDER.get(f.severity, 9), f.time or ""))
+                key = (f.rule, f.agent_id, f.node_id, f.title)
+                cur = groups.get(key)
+                if cur is None:
+                    f.evidence["occurrences"] = 1
+                    groups[key] = f
+                    continue
+                n = cur.evidence.get("occurrences", 1) + 1
+                if (f.time or "") > (cur.time or ""):
+                    f.evidence["occurrences"] = n
+                    groups[key] = f
+                else:
+                    cur.evidence["occurrences"] = n
+        out = sorted(groups.values(), key=lambda f: f.time or "", reverse=True)  # newest first within a severity
+        out.sort(key=lambda f: SEVERITY_ORDER.get(f.severity, 9))
         if severity:
             cutoff = SEVERITY_ORDER[severity]
             out = [f for f in out if SEVERITY_ORDER.get(f.severity, 9) <= cutoff]

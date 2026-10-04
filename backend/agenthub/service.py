@@ -49,6 +49,7 @@ def authority_chain(store: Store, run_id: str) -> dict[str, Any] | None:
     hops = []
     principal = None
     agent_depth = 0
+    session = store.run_tree(chain[0].run_id) if run.job_kind == NodeKind.TOOL else []
     for r in chain:
         principal = r.on_behalf_of or principal
         if r.job_kind == NodeKind.AGENT:
@@ -79,6 +80,17 @@ def authority_chain(store: Store, run_id: str) -> dict[str, Any] | None:
                 "detail": "side-effecting call explicitly approved" if approved
                 else "side-effecting call without explicit approval",
             })
+        if r.job_kind == NodeKind.TOOL and r.tool_name and not is_deny(r.policy_decision):
+            t0 = r.start_time or r.last_event_time
+            prior = [x for x in session if x.tool_name == r.tool_name and x.run_id != r.run_id
+                     and is_deny(x.policy_decision) and (x.start_time or x.last_event_time) <= t0]
+            if prior:
+                checks.append({
+                    "check": "prior denial",
+                    "status": "warn",
+                    "detail": f"{r.tool_name} was denied {len(prior)}x earlier in this session"
+                              + (f" ({prior[0].policy_rule})" if prior[0].policy_rule else ""),
+                })
         if r.state == RunState.FAIL:
             checks.append({"check": "outcome", "status": "warn", "detail": r.error_message or "run failed"})
         status = "fail" if any(c["status"] == "fail" for c in checks) else (

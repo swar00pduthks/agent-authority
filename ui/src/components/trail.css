@@ -1,0 +1,73 @@
+.trail { position: relative; }
+.trail-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 6px; }
+.trail-origin { display: flex; gap: 12px; align-items: center; }
+.origin-seal {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--verified) 16%, transparent); color: var(--verified);
+  border: 1.5px solid var(--verified);
+}
+.origin-seal.none { background: color-mix(in srgb, var(--fail) 14%, transparent); color: var(--fail); border: 1.5px dashed var(--fail); }
+.origin-name { font: 600 17px var(--font-display); letter-spacing: -0.01em; }
+
+/* The stamp: the one loud thing on the page. */
+.stamp {
+  font: 700 13px/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.14em;
+  padding: 9px 12px 8px; border: 2.5px solid currentColor; border-radius: 6px;
+  transform: rotate(-5deg); transform-origin: right top; margin-top: 4px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
+  animation: stamp 0.35s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgba(0, 0, 0, 0.82) 61%, #000 75%);
+}
+.stamp.pass { color: var(--verified); }
+.stamp.warn { color: var(--warn); }
+.stamp.fail { color: var(--fail); }
+@keyframes stamp { from { transform: rotate(-5deg) scale(1.6); opacity: 0; } to { transform: rotate(-5deg) scale(1); opacity: 1; } }
+
+.hops { list-style: none; margin: 0; padding: 14px 0 0 0; }
+.hop { position: relative; display: grid; grid-template-columns: 38px 1fr; gap: 14px; padding-bottom: 18px; }
+/* custody thread */
+.hop::before {
+  content: ''; position: absolute; left: 18px; top: -14px; height: 16px; width: 2px;
+  background: var(--verified);
+}
+.hop.broken::before { background: repeating-linear-gradient(to bottom, var(--fail) 0 4px, transparent 4px 8px); }
+.hop:not(.last)::after {
+  content: ''; position: absolute; left: 18px; top: 36px; bottom: 0; width: 2px;
+  background: var(--verified); opacity: 0.55;
+}
+.hop.broken:not(.last)::after { background: repeating-linear-gradient(to bottom, var(--fail) 0 4px, transparent 4px 8px); opacity: 1; }
+
+.seal {
+  width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: var(--bg-raised); border: 1.5px solid var(--line-strong); color: var(--ink-2);
+  position: relative; z-index: 1; transition: transform 0.12s;
+}
+.seal:hover { transform: scale(1.08); color: var(--ink); }
+.hop.pass .seal { border-color: var(--verified); color: var(--verified); }
+.hop.warn .seal { border-color: var(--warn); color: var(--warn); }
+.hop.fail .seal { border-color: var(--fail); color: var(--fail); background: color-mix(in srgb, var(--fail) 12%, var(--bg-raised)); }
+
+.hop-body { padding-top: 6px; min-width: 0; }
+.hop-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.hop-name { font: 600 15px var(--font-display); letter-spacing: -0.01em; }
+.hop-kind { font: 500 11px var(--font-mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.hop-meta { color: var(--ink-3); }
+
+.checks { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.checks li { display: grid; grid-template-columns: 14px 150px 1fr; align-items: center; gap: 8px; font-size: 12.5px; }
+.checks li svg { color: var(--ink-3); }
+.checks li.pass svg { color: var(--verified); }
+.checks li.warn svg { color: var(--warn); }
+.checks li.fail svg { color: var(--fail); }
+.check-name { font: 500 11px var(--font-mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+.checks li.fail .check-detail { color: var(--fail); }
+
+.touched { margin-top: 4px; padding: 14px 16px; border-radius: var(--r-md); background: var(--bg-sunk); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.touched-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dir { font: 600 10.5px var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; width: 44px; color: var(--k-dataset); }
+.dir.out { color: var(--warn); }
+
+@media (max-width: 600px) {
+  .checks li { grid-template-columns: 14px 1fr; }
+  .check-name { display: none; }
+}

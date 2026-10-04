@@ -201,8 +201,12 @@ class MemoryStore(Store):
                 a["runs"] += 1
                 a["failures"] += int(r.state == RunState.FAIL)
                 a["owner"] = a["owner"] or r.owner
-                if r.on_behalf_of:
-                    a["principals"].add(r.on_behalf_of)
+                principal, p = r.on_behalf_of, r
+                while principal is None and p and p.parent_run_id:  # inherit from the delegation chain
+                    p = self.runs.get(p.parent_run_id)
+                    principal = p.on_behalf_of if p else None
+                if principal:
+                    a["principals"].add(principal)
                 t = r.last_event_time
                 if t and (a["last_seen"] is None or t > a["last_seen"]):
                     a["last_seen"] = t

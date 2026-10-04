@@ -119,9 +119,22 @@ RMS = ["user:priya.sharma", "user:tom.becker", "user:aisha.khan", "user:li.wei"]
 TRADERS = ["user:marco.rossi", "user:sofia.lind"]
 
 
+PACE = {"value": 0.0}  # 0 while seeding (instant), 1.0 in live mode so timelines look real
+
+
+def _work(lo: float = 0.02, hi: float = 0.25) -> None:
+    if PACE["value"]:
+        time.sleep(random.uniform(lo, hi) * PACE["value"])
+
+
 def _llm(hub: AgentHub, model: str = "claude-sonnet") -> None:
-    hub.llm(model, prompt={"messages": [{"role": "user", "content": "lorem ipsum " * random.randint(20, 80)}]},
-            completion="dolor sit amet " * random.randint(10, 60), latency_ms=random.uniform(300, 2500))
+    latency = random.uniform(300, 2500)
+    with hub._run("llm", f"llm.{model}", {
+        "model": model, "latencyMs": latency,
+        "prompt": {"messages": [{"role": "user", "content": "lorem ipsum " * random.randint(20, 80)}]},
+        "completion": "dolor sit amet " * random.randint(10, 60),
+    }):
+        _work(latency / 4000, latency / 2000)
 
 
 def client_service(hub: AgentHub) -> None:
@@ -129,50 +142,50 @@ def client_service(hub: AgentHub) -> None:
         with hub.agent("triage", owner="wealth-ai-platform", model="claude-sonnet"):
             _llm(hub)
             with hub.tool("web_search"):
-                pass
+                _work()
             with hub.agent("kyc-checker", owner="fincrime-ai", model="claude-haiku"):
                 with hub.tool("lookup_client", inputs=[CLIENTS], policy=("allow", "rm-entitlement")):
-                    pass
+                    _work()
                 with hub.tool("read_crm_notes", inputs=[CRM_NOTES]):
-                    pass
+                    _work()
                 _llm(hub, "claude-haiku")
             with hub.agent("drafting", owner="wealth-ai-platform", model="claude-sonnet"):
                 for _ in range(random.randint(1, 3)):
                     _llm(hub)
                 with hub.tool("calculator"):
-                    pass
+                    _work()
                 with hub.tool("send_email", side_effecting=True, policy=("allow", "human-approved")):
-                    pass
+                    _work()
 
 
 def trade_assistant(hub: AgentHub) -> None:
     with hub.session("trade-assistant", on_behalf_of=random.choice(TRADERS)):
         with hub.agent("research", owner="markets-ai", model="claude-opus"):
             with hub.tool("get_var", inputs=[VAR]):
-                pass
+                _work()
             with hub.tool("get_prices", inputs=[MARKET]):
-                pass
+                _work()
             _llm(hub, "claude-opus")
         with hub.agent("execution", owner="markets-ai", model="claude-sonnet"):
             if random.random() < 0.35:
                 with hub.tool("place_order", side_effecting=True, outputs=[ORDERS], policy=("deny", "limit-breach")):
-                    pass
+                    _work()
                 with hub.tool("place_order", side_effecting=True, outputs=[ORDERS],
                               policy=random.choice([("deny", "limit-breach"), ("allow", "desk-head-override")])):
-                    pass
+                    _work()
             else:
                 with hub.tool("place_order", side_effecting=True, outputs=[ORDERS], policy=("allow", "within-limits")):
-                    pass
+                    _work()
 
 
 def recon_bot(hub: AgentHub) -> None:
     with hub.session("nightly-recon-bot"):  # no human principal: Sentinel should flag the side effect
         with hub.agent("recon", owner="finance-ops-ai", model="claude-haiku"):
             with hub.tool("read_ledger", inputs=[LEDGER]):
-                pass
+                _work()
             _llm(hub, "claude-haiku")
             with hub.tool("post_adjustment", side_effecting=True, outputs=[LEDGER]):
-                pass
+                _work()
 
 
 def research_swarm(hub: AgentHub) -> None:
@@ -182,12 +195,12 @@ def research_swarm(hub: AgentHub) -> None:
             with hub.agent("researcher", owner="research-ai", model="claude-sonnet"):
                 for _ in range(3):
                     with hub.tool("web_search"):
-                        pass
+                        _work()
                 with hub.agent("summariser", owner="research-ai", model="claude-haiku"):
                     _llm(hub, "claude-haiku")
                     with hub.agent("fact-checker", owner="research-ai", model="claude-haiku"):
                         with hub.tool("get_prices", inputs=[MARKET]):
-                            pass
+                            _work()
                         _llm(hub, "claude-haiku")
 
 
@@ -195,9 +208,9 @@ def shadow_scraper(hub: AgentHub) -> None:
     with hub.session("adhoc-notebook", on_behalf_of="user:tom.becker"):
         with hub.agent("shadow-scraper", model="gpt-4o"):  # no owner
             with hub.tool("lookup_client", inputs=[CLIENTS]):
-                pass
+                _work()
             with hub.tool("export_csv", side_effecting=True, inputs=[CLIENTS], outputs=[EXPORTS]):
-                pass
+                _work()
 
 
 def flaky_agent(hub: AgentHub) -> None:
@@ -239,6 +252,7 @@ class DemoTraffic:
             self.tick()
 
     def run_forever(self) -> None:
+        PACE["value"] = 1.0
         while not self._stop.is_set():
             self.tick()
             time.sleep(max(0.05, random.expovariate(self.rate)))

@@ -107,3 +107,14 @@ def test_sentinel_rules(hub, store):
 
 def test_policy_denied_exception_exists():
     assert issubclass(PolicyDenied, PermissionError)
+
+
+def test_authority_warns_on_retry_after_denial(hub, store):
+    with hub.session("desk", on_behalf_of="user:alice"), hub.agent("trader", owner="m"):
+        with hub.tool("place_order", side_effecting=True, policy=("deny", "limit-breach")):
+            pass
+        with hub.tool("place_order", side_effecting=True, policy=("allow", "override")) as t:
+            pass
+    chain = authority_chain(store, t.run_id)
+    assert chain["verdict"] == "warn"
+    assert any(c["check"] == "prior denial" for c in chain["hops"][-1]["checks"])
