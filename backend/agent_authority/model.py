@@ -45,6 +45,7 @@ class NodeKind:
     TOOL = "tool"
     LLM = "llm"
     IDENTITY = "identity"
+    APPROVAL = "approval"
 
 
 class EdgeType:

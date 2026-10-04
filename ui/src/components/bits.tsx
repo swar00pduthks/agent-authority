@@ -1,4 +1,4 @@
-import { Bot, Boxes, Cog, Database, Fingerprint, MessageSquareText, Workflow, Wrench } from 'lucide-react'
+import { BadgeCheck, Bot, Boxes, Cog, Database, Fingerprint, MessageSquareText, Workflow, Wrench } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { Kind } from '../api'
 
@@ -11,11 +11,12 @@ export const KIND_ICON: Record<Kind, typeof Bot> = {
   tool: Wrench,
   llm: MessageSquareText,
   identity: Fingerprint,
+  approval: BadgeCheck,
 }
 
 export const KIND_LABEL: Record<Kind, string> = {
   dataset: 'Dataset', job: 'Pipeline job', session: 'Session', agent: 'Agent', step: 'Step', tool: 'Tool',
-  llm: 'LLM call', identity: 'Person',
+  llm: 'LLM call', identity: 'Person', approval: 'Human approval',
 }
 
 export function KindTag({ kind, label }: { kind: Kind; label?: string }) {
@@ -46,7 +47,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
 export function ErrorNote({ error }: { error: string | null }) {
   if (!error) return null
   return (
-    <div className="panel" style={{ padding: 14, borderColor: 'var(--fail)', color: 'var(--fail)', marginBottom: 16 }}>
+    <div className="panel" style={{ padding: 14, borderColor: 'var(--color-fail)', color: 'var(--color-fail)', marginBottom: 16 }}>
       Can't reach the Agent Authority API ({error}). Start it with <code className="mono">authority demo</code> and reload.
     </div>
   )

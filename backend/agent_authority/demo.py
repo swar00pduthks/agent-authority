@@ -244,7 +244,7 @@ def app_builder(hub: Authority) -> None:
     slug = ns.split("/")[-1]
     repo = Dataset("git://github.com/northwind-apps", slug)
     model = random.choice(["azure-openai:gpt-4.1", "in-tenant:gpt-oss-120b"])
-    with ah.session(f"build: {title}", on_behalf_of=person, project=slug):
+    with ah.session(f"build: {title}", on_behalf_of=person, project=slug) as sess:
         with ah.agent("planner", owner="app-builder-platform", model=model):
             with ah._run("llm", f"llm.{model}", {"model": model, "policy": {"decision": "allow", "rule": "model-allowlist"},
                                                  "prompt": f"Plan a React app: {title}"}):
@@ -264,6 +264,22 @@ def app_builder(hub: Authority) -> None:
             with ah.tool("open_pull_request", side_effecting=True, outputs=[repo],
                          policy=("allow", "human-review-required")):
                 _work()
+    # Later, a reviewer acts on the pull request; the merge webhook closes the chain at a named person.
+    roll = random.random()
+    if roll < 0.85:
+        from types import SimpleNamespace
+
+        from agent_authority.approvals import ApprovalDecision, approval_events
+
+        session = SimpleNamespace(run_id=sess.run_id, namespace=ns, job_name=f"build: {title}")
+        reviewer = random.choice(["github:risk-reviewer", "github:desk-head", "github:platform-lead"])
+        if roll < 0.15:
+            hub.transport.emit_many(approval_events(session, ApprovalDecision(
+                sess.run_id, reviewer, "changes_requested", "github", reference="PR #" + str(random.randint(10, 99)),
+                repository=(repo.namespace, repo.name))))
+        hub.transport.emit_many(approval_events(session, ApprovalDecision(
+            sess.run_id, reviewer, "merged", "github", reference="PR #" + str(random.randint(10, 99)),
+            repository=(repo.namespace, repo.name))))
 
 
 SCENARIOS: list[tuple[Callable[[Authority], None], float]] = [

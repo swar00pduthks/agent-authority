@@ -1,0 +1,84 @@
+/* Agent Authority design tokens ----------------------------------------------------------
+   Two layers (see the "Shared design system" review):
+
+   BRAND  --color-accent, ground, surfaces, ink, borders, fonts, radii.
+          A host app embedding <agent-authority> may override these from outside:
+          agent-authority { --color-accent: #2f6fdb; --font-body: "Segoe UI", sans-serif; }
+
+   MEANING  --color-verified / warn / fail / critical / info and --color-kind-*.
+          These carry verdicts and must look the same in every product, so inside the web component they are
+          re-declared on .embedded (an element in the shadow root), where values set by the host can't reach.
+
+   Light-theme meaning colours are darkened to reach WCAG AA 4.5:1 for text on paper #F3F2EE. */
+
+/* ---- brand: dark (default) ---- */
+:root, :host {
+  --color-accent: #45c4b0;
+  --color-ground: #121419;
+  --color-surface: #191c22;
+  --color-sunken: #0d0f13;
+  --color-border: #262a33;
+  --color-border-strong: #353a46;
+  --color-ink: #e7e4dc;
+  --color-ink-muted: #a9a69e;
+  --color-ink-faint: #6f6d68;
+  --font-display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+/* ---- brand: light ---- */
+:root[data-theme='light'], :host([theme='light']) {
+  --color-accent: #16796b;
+  --color-ground: #f3f2ee;
+  --color-surface: #ffffff;
+  --color-sunken: #e9e7e1;
+  --color-border: #dcd9d1;
+  --color-border-strong: #c6c2b8;
+  --color-ink: #17181c;
+  --color-ink-muted: #55565c;
+  --color-ink-faint: #6e6e73;
+  --shadow: 0 12px 40px rgba(30, 30, 20, 0.12);
+  color-scheme: light;
+}
+
+/* ---- meaning: dark (locked inside the web component) ---- */
+:root, :host, .embedded {
+  --color-verified: #45c4b0;
+  --color-warn: #e5a93c;
+  --color-fail: #ef5a5a;
+  --color-critical: #ff3d6e;
+  --color-info: #8b93a7;
+  --color-kind-dataset: #7fa7e8;
+  --color-kind-job: #c9a86a;
+  --color-kind-session: #b79cf0;
+  --color-kind-agent: #45c4b0;
+  --color-kind-step: #8b93a7;
+  --color-kind-tool: #d98fc1;
+  --color-kind-llm: #7f8aa3;
+  --color-kind-identity: #e7e4dc;
+  --color-kind-approval: #45c4b0;
+}
+
+/* ---- meaning: light (AA 4.5:1 on paper) ---- */
+:root[data-theme='light'], :host([theme='light']), :host([theme='light']) .embedded {
+  --color-verified: #16796b;
+  --color-warn: #93610a;
+  --color-fail: #ca3232;
+  --color-critical: #d4114a;
+  --color-info: #666d7a;
+  --color-kind-dataset: #3d6cbb;
+  --color-kind-job: #86672a;
+  --color-kind-session: #7759c3;
+  --color-kind-agent: #16796b;
+  --color-kind-step: #666d7a;
+  --color-kind-tool: #a74b86;
+  --color-kind-llm: #5b6478;
+  --color-kind-identity: #17181c;
+  --color-kind-approval: #16796b;
+}

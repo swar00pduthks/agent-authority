@@ -26,6 +26,7 @@ from typing import Any
 log = logging.getLogger("agent_authority.auth")
 
 PUBLIC_PATHS = ("/api/authority/health",)
+WEBHOOK_PREFIX = "/api/authority/webhooks/"  # authenticated by provider signatures, not bearer tokens
 
 
 class AuthError(Exception):
@@ -149,6 +150,8 @@ class Authenticator:
     def authenticate(self, path: str, method: str, authorization: str | None) -> Principal:
         if path in PUBLIC_PATHS:
             return Principal("anonymous", via="anonymous")
+        if path.startswith(WEBHOOK_PREFIX):
+            return Principal("webhook", via="webhook")
         token = self._bearer(authorization)
         ingest = method == "POST" and path == "/api/v1/lineage"
 

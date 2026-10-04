@@ -26,8 +26,10 @@
     .slot { flex: 1; overflow: auto; }
     .editor { padding: 40px; color: #7a8394; }
     agent-authority { min-height: 100%; }
-    /* The host can restyle the embed through its CSS custom properties: */
-    agent-authority[theme="light"] { --verified: #2f6fdb; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    /* The host can restyle the embed's BRAND tokens (accent, surfaces, fonts) from outside: */
+    agent-authority[theme="light"] { --color-accent: #3341c4; --font-body: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    /* ...but verdict colours are locked inside the component, so this line has no effect (by design): */
+    agent-authority { --color-verified: hotpink; --color-fail: hotpink; }
   </style>
 </head>
 <body>

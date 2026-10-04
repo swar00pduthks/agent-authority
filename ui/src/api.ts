@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export type Kind = 'dataset' | 'job' | 'session' | 'agent' | 'step' | 'tool' | 'llm' | 'identity'
+export type Kind = 'dataset' | 'job' | 'session' | 'agent' | 'step' | 'tool' | 'llm' | 'identity' | 'approval'
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info'
 
 export interface Stats {

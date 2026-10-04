@@ -80,7 +80,7 @@ function RunDrawer({ runId, initialTab, onClose, onSelect }: {
                 <dt>Events merged</dt><dd>{r.event_count} → 1 row</dd>
                 <dt>Started</dt><dd className="mono">{r.start_time ?? '—'}</dd>
                 <dt>Ended</dt><dd className="mono">{r.end_time ?? '—'}</dd>
-                {r.error && <><dt>Error</dt><dd style={{ color: 'var(--fail)' }}>{r.error}</dd></>}
+                {r.error && <><dt>Error</dt><dd style={{ color: 'var(--color-fail)' }}>{r.error}</dd></>}
               </dl>
               <div>
                 <div className="label" style={{ marginBottom: 8 }}>Dynamic facets (kept on the run row)</div>
@@ -92,7 +92,7 @@ function RunDrawer({ runId, initialTab, onClose, onSelect }: {
             <>
               <p className="muted" style={{ margin: 0 }}>
                 Stored events are rebuilt from their content-addressed facets, giving the exact OpenLineage events
-                that were received. <span style={{ color: 'var(--verified)' }}>Teal refs</span> show what was deduplicated.
+                that were received. <span style={{ color: 'var(--color-accent)' }}>Teal refs</span> show what was deduplicated.
               </p>
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input type="checkbox" checked={withPayloads} onChange={(e) => setWithPayloads(e.target.checked)} />

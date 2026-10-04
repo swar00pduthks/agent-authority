@@ -336,7 +336,7 @@ class Collector:
             pid = job_node_id(parent_job.get("namespace", ns), parent_job["name"])
             b.add_edge(EdgeObs(pid, jid, EdgeType.INVOKES, etime, etime, n))
 
-        if agent.on_behalf_of and kind in (NodeKind.SESSION, NodeKind.AGENT):
+        if agent.on_behalf_of and kind in (NodeKind.SESSION, NodeKind.AGENT, NodeKind.APPROVAL):
             iid = identity_node_id(agent.on_behalf_of)
             self._upsert_node(b, Node(iid, NodeKind.IDENTITY, "identity", agent.on_behalf_of, {}))
             b.add_edge(EdgeObs(iid, jid, EdgeType.ON_BEHALF_OF, etime, etime, n))

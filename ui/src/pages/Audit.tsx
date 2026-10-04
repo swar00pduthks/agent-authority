@@ -29,7 +29,7 @@ export function AuditPage({ sessionId }: { sessionId?: string }) {
   const [chains, setChains] = useState<Authority[] | null>(null)
 
   const runs = tree.data ? flatten(tree.data.tree) : []
-  const actions = runs.filter((r) => r.side_effecting || r.policy_decision || r.state === 'FAIL')
+  const actions = runs.filter((r) => r.kind !== 'approval' && (r.side_effecting || r.policy_decision || r.state === 'FAIL'))
   const actionKey = actions.map((r) => r.run_id).join(',')
 
   useEffect(() => {
@@ -76,13 +76,15 @@ export function AuditPage({ sessionId }: { sessionId?: string }) {
           {chains?.length === 0 && <Empty title="No actions changed anything">This session only read and reasoned.</Empty>}
           <div className="audit-actions">
             {chains?.map((c) => {
-              const last = c.hops[c.hops.length - 1]
+              const last = c.hops.find((h) => h.run_id === c.run_id) ?? c.hops[c.hops.length - 1]
+              const approver = c.hops.filter((h) => h.kind === 'approval').at(-1)
               return (
                 <details key={c.run_id} className={`audit-action v-${c.verdict}`} open={c.verdict !== 'pass'}>
                   <summary>
                     <span className={`dot-v ${c.verdict}`} />
                     <span className="aa-name">{last.job}</span>
                     <span className="faint mono">{last.kind}</span>
+                    {approver && <span className="faint">approved by {approver.principal}</span>}
                     <span style={{ marginLeft: 'auto' }}><Pill tone={c.verdict}>{c.verdict}</Pill></span>
                   </summary>
                   <div className="aa-body"><AuthorityTrail a={c} onSelect={(rid) => open(rid)} /></div>

@@ -96,3 +96,13 @@ def test_replay_and_catalog_match(stores):
     def norm(cat):
         return sorted((a["agent_id"], a["runs"], a["failures"], a["denials"], tuple(a["tools"])) for a in cat)
     assert norm(mem.agent_catalog()) == norm(prod.agent_catalog())
+
+
+def test_integrity_chain_survives_the_production_store(stores):
+    from agent_authority.integrity import verify_chain
+
+    mem, prod = stores
+    root = next(r.run_id for r in mem.runs.values() if r.job_kind == "session")
+    m, p = verify_chain(mem, root, None), verify_chain(prod, root, None)
+    assert m.problems == [] and p.problems == []
+    assert (m.events, m.head_seq, m.head_hash) == (p.events, p.head_seq, p.head_hash)

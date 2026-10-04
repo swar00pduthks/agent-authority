@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -19,6 +20,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from agent_authority import __version__
+from agent_authority.approvals import (
+    ApprovalDecision,
+    WebhookError,
+    approval_events,
+    parse_github,
+    parse_gitlab,
+    verify_github,
+    verify_gitlab,
+)
 from agent_authority.auth import AuthConfig, Authenticator, AuthError
 from agent_authority.collector.pipeline import Collector, InvalidEvent
 from agent_authority.collector.policy import CapturePolicy
@@ -213,6 +223,52 @@ def create_app(store: Store, collector: Collector | None = None, sentinel: Senti
                 for a in store.tool_aggregates()
                 if a.parent_run_id and (r := store.get_run(a.parent_run_id)) and r.root_run_id == root_run_id]
         return {"tree": tree, "aggregated_tools": aggs}
+
+    # ------------------------------------------------------- human approvals
+    def record_approval(d: ApprovalDecision) -> dict[str, Any]:
+        session = store.get_run(d.session_id)
+        if session is None:
+            raise HTTPException(404, f"session {d.session_id} not found")
+        ingest_events(approval_events(session, d))
+        return {"recorded": True, "session_id": d.session_id, "approver": d.approver, "decision": d.decision}
+
+    @app.post("/api/authority/approvals", status_code=201, tags=["approvals"])
+    def post_approval(body: dict[str, Any] = Body(...)) -> dict[str, Any]:
+        """Record a human approval directly (for hosts that already receive the merge webhook)."""
+        try:
+            repo = body.get("repository")
+            d = ApprovalDecision(body["session_id"], body["approver"], body.get("decision", "approved"),
+                                 body.get("provider", "api"), body.get("url"), body.get("reference"),
+                                 (repo["namespace"], repo["name"]) if repo else None)
+        except (KeyError, TypeError) as exc:
+            raise HTTPException(422, f"missing field: {exc}") from exc
+        return record_approval(d)
+
+    def webhook_secret(name: str) -> str | None:
+        secret = os.getenv(name)
+        if not secret and auth.oidc_enabled:
+            raise HTTPException(403, f"set {name} to accept webhooks on a secured deployment")
+        return secret
+
+    @app.post("/api/authority/webhooks/github", tags=["approvals"])
+    async def github_webhook(request: Request) -> dict[str, Any]:
+        body = await request.body()
+        try:
+            verify_github(webhook_secret("AUTHORITY_GITHUB_WEBHOOK_SECRET"), body,
+                          request.headers.get("x-hub-signature-256"))
+        except WebhookError as exc:
+            raise HTTPException(exc.status, exc.message) from exc
+        d = parse_github(request.headers.get("x-github-event", ""), json.loads(body or b"{}"))
+        return record_approval(d) if d else {"recorded": False, "reason": "not an approval or merge of a linked PR"}
+
+    @app.post("/api/authority/webhooks/gitlab", tags=["approvals"])
+    async def gitlab_webhook(request: Request) -> dict[str, Any]:
+        try:
+            verify_gitlab(webhook_secret("AUTHORITY_GITLAB_WEBHOOK_TOKEN"), request.headers.get("x-gitlab-token"))
+        except WebhookError as exc:
+            raise HTTPException(exc.status, exc.message) from exc
+        d = parse_gitlab(await request.json())
+        return record_approval(d) if d else {"recorded": False, "reason": "not an approval or merge of a linked MR"}
 
     @app.get("/api/authority/sessions/{root_run_id}/integrity", tags=["authority"])
     def session_integrity(root_run_id: str) -> dict[str, Any]:

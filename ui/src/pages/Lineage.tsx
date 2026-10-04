@@ -46,10 +46,10 @@ function layout(nodes: GNode[], edges: GEdge[]) {
 }
 
 const EDGE_STYLE: Record<string, React.CSSProperties> = {
-  INPUT: { stroke: 'var(--k-dataset)' },
-  OUTPUT: { stroke: 'var(--k-job)' },
-  INVOKES: { stroke: 'var(--k-agent)', strokeDasharray: '5 4' },
-  ON_BEHALF_OF: { stroke: 'var(--ink-3)', strokeDasharray: '1 4', strokeLinecap: 'round' },
+  INPUT: { stroke: 'var(--color-kind-dataset)' },
+  OUTPUT: { stroke: 'var(--color-kind-job)' },
+  INVOKES: { stroke: 'var(--color-kind-agent)', strokeDasharray: '5 4' },
+  ON_BEHALF_OF: { stroke: 'var(--color-ink-faint)', strokeDasharray: '1 4', strokeLinecap: 'round' },
 }
 
 function Graph() {
@@ -89,8 +89,8 @@ function Graph() {
     return {
       id: `${e.src}|${e.dst}|${e.type}`, source: e.src, target: e.dst,
       style: { ...EDGE_STYLE[e.type], strokeWidth: Math.min(1 + Math.log10(e.run_count + 1), 3.2), opacity: blast && !inBlast ? 0.12 : 0.8,
-        ...(inBlast ? { stroke: 'var(--fail)' } : {}) },
-      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: inBlast ? 'var(--fail)' : 'var(--ink-3)' },
+        ...(inBlast ? { stroke: 'var(--color-fail)' } : {}) },
+      markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: inBlast ? 'var(--color-fail)' : 'var(--color-ink-faint)' },
       animated: !!inBlast,
     }
   }), [graph.data, blast, hotIds])
@@ -116,9 +116,9 @@ function Graph() {
         ))}
         <button className="btn" aria-pressed={people} onClick={() => setPeople(!people)}>Show people</button>
         <span className="legend">
-          <span><i style={{ background: 'var(--k-dataset)' }} />reads</span>
-          <span><i style={{ background: 'var(--k-job)' }} />writes</span>
-          <span><i className="dash" style={{ borderColor: 'var(--k-agent)' }} />invokes</span>
+          <span><i style={{ background: 'var(--color-kind-dataset)' }} />reads</span>
+          <span><i style={{ background: 'var(--color-kind-job)' }} />writes</span>
+          <span><i className="dash" style={{ borderColor: 'var(--color-kind-agent)' }} />invokes</span>
           <span><i className="dot" />acts for</span>
         </span>
       </div>
@@ -126,7 +126,7 @@ function Graph() {
         <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1.1 }} minZoom={0.15} proOptions={{ hideAttribution: true }}
           onNodeClick={(_, n) => { setSelected((n.data as NodeData).g); setBlast(null) }} onPaneClick={() => setSelected(null)}
           nodesConnectable={false} colorMode="system">
-          <Background gap={24} size={1} color="var(--line)" />
+          <Background gap={24} size={1} color="var(--color-border)" />
           <Controls showInteractive={false} />
         </ReactFlow>
 
@@ -157,7 +157,7 @@ function Graph() {
                 </div>
                 {blast.sensitive_datasets.length > 0 && (
                   <div className="blast-sens">
-                    <div className="label" style={{ color: 'var(--fail)' }}>Sensitive data exposed</div>
+                    <div className="label" style={{ color: 'var(--color-fail)' }}>Sensitive data exposed</div>
                     {blast.sensitive_datasets.map((d) => <div key={d} className="mono">{d.replace(/^dataset:/, '')}</div>)}
                   </div>
                 )}

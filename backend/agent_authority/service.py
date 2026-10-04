@@ -69,14 +69,17 @@ def authority_chain(store: Store, run_id: str) -> dict[str, Any] | None:
         if r.policy_decision:
             checks.append({
                 "check": "policy",
-                "status": "fail" if is_deny(r.policy_decision) else "pass",
-                "detail": f"{r.policy_decision}" + (f" ({r.policy_rule})" if r.policy_rule else ""),
+                # A denial means the guardrail worked and the action did not happen: worth reviewing, but it is not
+                # unaccountable. "fail" is reserved for actions nobody can answer for.
+                "status": "warn" if is_deny(r.policy_decision) else "pass",
+                "detail": ("blocked by policy" if is_deny(r.policy_decision) else f"{r.policy_decision}")
+                + (f" ({r.policy_rule})" if r.policy_rule else ""),
             })
         if r.job_kind == NodeKind.TOOL and r.side_effecting:
             approved = (r.policy_decision or "").lower() in ALLOW
             checks.append({
                 "check": "side-effect approval",
-                "status": "pass" if approved else ("fail" if is_deny(r.policy_decision) else "warn"),
+                "status": "pass" if approved else "warn",
                 "detail": "side-effecting call explicitly approved" if approved
                 else "side-effecting call without explicit approval",
             })
@@ -100,16 +103,62 @@ def authority_chain(store: Store, run_id: str) -> dict[str, Any] | None:
             "agent_id": r.agent_id, "principal": principal, "tool": r.tool_name, "model": r.model,
             "state": RunState(r.state).name, "status": status, "checks": checks,
         })
-    touched = [
-        {"dataset_id": x.dataset_id, "direction": x.direction, "row_count": x.row_count}
-        for x in store.run_io(run_id=run_id)
-    ]
+    touched_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    for x in store.run_io(run_id=run_id):  # START and COMPLETE both report inputs: keep one row per dataset+direction
+        cur = touched_by_key.setdefault((x.dataset_id, x.direction),
+                                        {"dataset_id": x.dataset_id, "direction": x.direction, "row_count": None})
+        cur["row_count"] = cur["row_count"] if x.row_count is None else x.row_count
+    touched = list(touched_by_key.values())
     for t in touched:
         node = store.get_node(t["dataset_id"])
         t["tags"] = (node.attrs.get("tags") if node else None) or []
+    if run.job_kind == NodeKind.TOOL and run.side_effecting:
+        _close_with_approvals(store, run, session, touched, hops)
     verdict = "fail" if any(h["status"] == "fail" for h in hops) else (
         "warn" if any(h["status"] == "warn" for h in hops) else "pass")
     return {"run_id": run_id, "verdict": verdict, "agent_depth": agent_depth, "hops": hops, "datasets": touched}
+
+
+APPROVED = {"approved", "merged"}
+REJECTED = {"rejected", "denied"}
+
+
+def _close_with_approvals(store: Store, run: RunRecord, session: list[RunRecord], touched: list[dict[str, Any]],
+                          hops: list[dict[str, Any]]) -> None:
+    """End the chain at the humans who approved (or blocked) what a side-effecting tool changed."""
+    outs = {t["dataset_id"] for t in touched if t["direction"] == "out"}
+    needs_review = "review" in (run.policy_rule or "").lower()
+    found = []
+    for a in sorted((x for x in session if x.job_kind == NodeKind.APPROVAL),
+                    key=lambda x: x.end_time or x.last_event_time):
+        a_outs = {x.dataset_id for x in store.run_io(run_id=a.run_id) if x.direction == "out"}
+        if (a_outs & outs) or needs_review:  # same repo, or any approval in a session that required review
+            found.append(a)
+    if not found:
+        if needs_review:
+            hops[-1]["checks"].append({"check": "human approval", "status": "warn",
+                                       "detail": "review required, but no approval has been recorded yet"})
+            if hops[-1]["status"] == "pass":
+                hops[-1]["status"] = "warn"
+        return
+    final = (found[-1].policy_decision or "").lower()
+    for a in found:
+        d = (a.policy_decision or "").lower()
+        ref = (a.dyn_facets.get("agent") or {}).get("approval", {})
+        where = " ".join(x for x in (ref.get("provider"), ref.get("reference")) if x)
+        if d in APPROVED:
+            status, detail = "pass", f"{d} by {a.on_behalf_of}" + (f" ({where})" if where else "")
+        elif final in APPROVED:
+            status, detail = "pass", f"{d.replace('_', ' ')} by {a.on_behalf_of}, resolved by a later approval"
+        else:
+            status = "fail" if d in REJECTED else "warn"
+            detail = f"{d.replace('_', ' ')} by {a.on_behalf_of}" + (f" ({where})" if where else "")
+        hops.append({
+            "run_id": a.run_id, "job": a.job_name, "namespace": a.namespace, "kind": NodeKind.APPROVAL,
+            "agent_id": None, "principal": a.on_behalf_of, "tool": None, "model": None,
+            "state": RunState(a.state).name, "status": status,
+            "checks": [{"check": "human approval", "status": status, "detail": detail}],
+        })
 
 
 def blast_radius(store: Store, node_id: str, depth: int = 6) -> dict[str, Any] | None:

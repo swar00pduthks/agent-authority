@@ -1,35 +1,37 @@
 .sess-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 16px; align-items: start; }
 .sess-list { max-height: calc(100vh - 190px); overflow: auto; padding: 6px; position: sticky; top: 70px; }
 .sess-item { display: block; width: 100%; text-align: left; padding: 11px 12px; border-radius: var(--r-md); border: 0; background: none; cursor: pointer; }
-.sess-item:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
-.sess-item.on { background: var(--bg-sunk); box-shadow: inset 2px 0 0 var(--k-session); }
+.sess-item:hover { background: color-mix(in srgb, var(--color-ink) 4%, transparent); }
+.sess-item.on { background: var(--color-sunken); box-shadow: inset 2px 0 0 var(--color-kind-session); }
 .si-top { display: flex; justify-content: space-between; gap: 8px; }
 .si-name { font-weight: 600; }
-.si-who { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
-.si-none { color: var(--fail); }
+.si-who { font-size: 12.5px; color: var(--color-ink-muted); margin-top: 2px; }
+.si-none { color: var(--color-fail); }
 .si-meta { margin-top: 4px; }
-.si-bad { color: var(--fail); }
+.si-bad { color: var(--color-fail); }
 
 .tl { padding: 8px 0; }
 .tl-row { display: grid; grid-template-columns: minmax(200px, 300px) 1fr 120px; align-items: center; min-height: 32px; cursor: pointer; }
-.tl-row:hover { background: color-mix(in srgb, var(--ink) 3%, transparent); }
+.tl-row:hover { background: color-mix(in srgb, var(--color-ink) 3%, transparent); }
 .tl-name { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13px; position: relative; }
-.tl-icon { flex: none; color: var(--kc, var(--ink-3)); }
+.tl-icon { flex: none; color: var(--kc, var(--color-ink-faint)); }
 .tl-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tl-se { color: var(--warn); font-size: 9px; }
-.tl-track { position: relative; height: 32px; border-left: 1px solid var(--line); margin-right: 12px;
-  background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--line) calc(25% - 1px) 25%); }
-.tl-bar { position: absolute; top: 11px; height: 10px; border-radius: 2px; background: var(--kc, var(--ink-3)); min-width: 3px; }
+.tl-se { color: var(--color-warn); font-size: 9px; }
+.tl-track { position: relative; height: 32px; border-left: 1px solid var(--color-border); margin-right: 12px;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--color-border) calc(25% - 1px) 25%); }
+.tl-bar { position: absolute; top: 11px; height: 10px; border-radius: 2px; background: var(--kc, var(--color-ink-faint)); min-width: 3px; }
 .tl-status { display: flex; gap: 4px; justify-content: flex-end; padding-right: 14px; }
-.tl-row.k-session { --kc: var(--k-session); }
-.tl-row.k-agent { --kc: var(--k-agent); }
-.tl-row.k-tool { --kc: var(--k-tool); }
-.tl-row.k-llm { --kc: var(--k-llm); }
-.tl-row.k-step { --kc: var(--k-step); }
+.tl-row.k-session { --kc: var(--color-kind-session); }
+.tl-row.k-agent { --kc: var(--color-kind-agent); }
+.tl-row.k-tool { --kc: var(--color-kind-tool); }
+.tl-row.k-llm { --kc: var(--color-kind-llm); }
+.tl-row.k-step { --kc: var(--color-kind-step); }
+.tl-row.k-approval { --kc: var(--color-kind-approval); }
+.tl-row.k-approval .tl-label { font-weight: 600; }
 .tl-row.k-session .tl-label, .tl-row.k-agent .tl-label { font-weight: 600; }
-.tl-row.failed .tl-bar { background: var(--fail); }
-.tl-row.denied .tl-bar { background: repeating-linear-gradient(45deg, var(--fail) 0 3px, transparent 3px 6px); border: 1px solid var(--fail); }
-.rolled { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--line); }
+.tl-row.failed .tl-bar { background: var(--color-fail); }
+.tl-row.denied .tl-bar { background: repeating-linear-gradient(45deg, var(--color-fail) 0 3px, transparent 3px 6px); border: 1px solid var(--color-fail); }
+.rolled { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-top: 1px solid var(--color-border); }
 .rolled .label { margin-right: 6px; }
 
 @media (max-width: 1000px) {

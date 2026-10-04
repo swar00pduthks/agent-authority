@@ -78,20 +78,54 @@ function AuditRecord({ project, sessionId }: { project: Project; sessionId: stri
 | `getToken` (property) | Async bearer-token provider, e.g. MSAL for Entra |
 | `agent-authority:navigate` | Fired on internal navigation, `detail.path` |
 | `agent-authority:open-run` | Fired when a run's chain of authority opens, `detail.runId` |
+| `agent-authority:token-expired` | The API answered 401. Refresh the token (MSAL `acquireTokenSilent`), then call `detail.retry()`; the request retries once |
 
-**Styling.** The component renders in a shadow root. Its design tokens are CSS custom properties, so the host
-can restyle it without touching internals:
+**Styling.** The component renders in a shadow root and has two token layers:
+
+- **Brand** tokens the host may override from outside: `--color-accent`, `--color-ground`, `--color-surface`,
+  `--color-sunken`, `--color-border*`, `--color-ink*`, `--font-*`, `--r-*`.
+- **Meaning** tokens the host can't override: `--color-verified`, `--color-warn`, `--color-fail`,
+  `--color-critical`, `--color-info` and `--color-kind-*`. They are re-declared inside the shadow root, so an
+  auditor sees the same colour for Accountable / Review / Unaccountable in every product.
 
 ```css
-agent-authority { --verified: #2f6fdb; --font-body: "Segoe UI", system-ui, sans-serif; --font-display: inherit; }
+agent-authority { --color-accent: #2f6fdb; --font-body: "Segoe UI", system-ui, sans-serif; --font-display: inherit; }
 ```
+
+The single source is `ui/src/tokens.css`.
 
 **Try it:** run `authority demo --no-browser`, then
 `python -m http.server 5500 -d examples/microfrontend` and open http://localhost:5500. The page is a stand-in
 app-builder shell in plain HTML, embedding the audit record, sessions and findings per project.
 
+## 3. Close the chain with the human approver
+
+Write the session marker into every pull request the app builder opens:
+
+```python
+with aa.session(...) as session:
+    ...
+pr_body = f"{summary}\n\n{session.pr_marker}"   # "agent-authority-session: <session id>"
+```
+
+Point the repository's webhooks at Agent Authority:
+
+| Provider | URL | Events | Secret |
+|---|---|---|---|
+| GitHub | `/api/authority/webhooks/github` | Pull requests, Pull request reviews | `AUTHORITY_GITHUB_WEBHOOK_SECRET` (HMAC) |
+| GitLab | `/api/authority/webhooks/gitlab` | Merge request events | `AUTHORITY_GITLAB_WEBHOOK_TOKEN` |
+
+Reviews and merges become `approval` runs under the session, and the chain of authority for the PR ends at the
+named reviewer. If the app builder already receives these webhooks, it can `POST /api/authority/approvals`
+instead.
+
 ## Security notes
-- The read API has no built-in auth in v0.1. Put it behind the platform's gateway (APIM / oauth2-proxy with
-  Entra) and pass the token through `getToken`. Built-in OIDC validation is on the v0.2 roadmap.
+- Set `AUTHORITY_OIDC_ISSUER` (e.g. `https://login.microsoftonline.com/<tenant>/v2.0`) and
+  `AUTHORITY_OIDC_AUDIENCE` (the app registration's Application ID URI). Every API call then needs an Entra
+  token; optional app roles: `AUTHORITY_OIDC_READ_ROLE`, `AUTHORITY_OIDC_INGEST_ROLE`. Emitters that can't get
+  tokens (Spark) use `AUTHORITY_API_KEY` on ingest only.
+- Set `AUTHORITY_ANCHOR_DIR` (a WORM-mounted directory) or `AUTHORITY_ANCHOR_AZURE_CONNECTION_STRING` +
+  `AUTHORITY_ANCHOR_AZURE_CONTAINER` (a container with a time-based immutability policy) on **both** the API
+  and the collector, so audit records verify as intact rather than unanchored.
 - Run Agent Authority in the same tenant as the app builder; prompts and completions are stored in
   `payload_blob` and fall under the same data-residency rules.

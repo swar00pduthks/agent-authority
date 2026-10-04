@@ -1,53 +1,54 @@
 .lineage-page { max-width: none; display: flex; flex-direction: column; height: calc(100vh - 49px); padding-bottom: 20px; }
 .ns-chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-.legend { margin-left: auto; display: flex; gap: 14px; font: 500 11px var(--font-mono); color: var(--ink-3); }
+.legend { margin-left: auto; display: flex; gap: 14px; font: 500 11px var(--font-mono); color: var(--color-ink-faint); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 18px; height: 2px; display: inline-block; }
 .legend i.dash { height: 0; border-top: 2px dashed; }
-.legend i.dot { height: 0; border-top: 2px dotted var(--ink-3); }
+.legend i.dot { height: 0; border-top: 2px dotted var(--color-ink-faint); }
 .lineage-wrap { flex: 1; position: relative; overflow: hidden; min-height: 420px; }
 
-.react-flow { --xy-background-color: var(--bg-raised); }
-.react-flow__controls { box-shadow: none; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
-.react-flow__controls-button { background: var(--bg-raised); border-bottom: 1px solid var(--line); fill: var(--ink-2); }
-.react-flow__controls-button:hover { background: var(--bg-sunk); }
-.react-flow__minimap { background: var(--bg-sunk); border: 1px solid var(--line); border-radius: var(--r-md); }
+.react-flow { --xy-background-color: var(--color-surface); }
+.react-flow__controls { box-shadow: none; border: 1px solid var(--color-border); border-radius: var(--r-md); overflow: hidden; }
+.react-flow__controls-button { background: var(--color-surface); border-bottom: 1px solid var(--color-border); fill: var(--color-ink-muted); }
+.react-flow__controls-button:hover { background: var(--color-sunken); }
+.react-flow__minimap { background: var(--color-sunken); border: 1px solid var(--color-border); border-radius: var(--r-md); }
 .react-flow__handle { opacity: 0; width: 4px; height: 4px; min-width: 0; min-height: 0; border: 0; }
 
 .ln {
   width: 176px; height: 46px; display: flex; align-items: center; gap: 9px; padding: 0 12px 0 10px;
-  background: var(--bg); border: 1px solid var(--line-strong); border-left: 3px solid var(--kc, var(--ink-3));
+  background: var(--color-ground); border: 1px solid var(--color-border-strong); border-left: 3px solid var(--kc, var(--color-ink-faint));
   border-radius: var(--r-md); transition: opacity 0.2s, box-shadow 0.2s; position: relative;
 }
 .ln-icon { color: var(--kc); flex: none; }
 .ln-text { min-width: 0; flex: 1; }
 .ln-name { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ln-ns { font: 400 10.5px var(--font-mono); color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ln-tag { position: absolute; top: -8px; right: 8px; font: 600 9.5px var(--font-mono); text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: var(--fail); color: #fff; }
+.ln-ns { font: 400 10.5px var(--font-mono); color: var(--color-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ln-tag { position: absolute; top: -8px; right: 8px; font: 600 9.5px var(--font-mono); text-transform: uppercase; padding: 1px 5px; border-radius: 3px; background: var(--color-fail); color: #fff; }
 .ln.dim { opacity: 0.38; }
-.ln.hot { box-shadow: 0 0 0 2px var(--fail); }
-.ln.origin { box-shadow: 0 0 0 2px var(--ink), 0 0 24px color-mix(in srgb, var(--fail) 50%, transparent); }
-.react-flow__node.selected .ln { box-shadow: 0 0 0 2px var(--verified); }
-.ln.k-dataset { --kc: var(--k-dataset); }
-.ln.k-job { --kc: var(--k-job); }
-.ln.k-session { --kc: var(--k-session); }
-.ln.k-agent { --kc: var(--k-agent); }
-.ln.k-tool { --kc: var(--k-tool); }
-.ln.k-llm { --kc: var(--k-llm); }
-.ln.k-step { --kc: var(--k-step); }
-.ln.k-identity { --kc: var(--k-identity); border-radius: 26px; }
+.ln.hot { box-shadow: 0 0 0 2px var(--color-fail); }
+.ln.origin { box-shadow: 0 0 0 2px var(--color-ink), 0 0 24px color-mix(in srgb, var(--color-fail) 50%, transparent); }
+.react-flow__node.selected .ln { box-shadow: 0 0 0 2px var(--color-accent); }
+.ln.k-dataset { --kc: var(--color-kind-dataset); }
+.ln.k-job { --kc: var(--color-kind-job); }
+.ln.k-session { --kc: var(--color-kind-session); }
+.ln.k-agent { --kc: var(--color-kind-agent); }
+.ln.k-tool { --kc: var(--color-kind-tool); }
+.ln.k-approval { --kc: var(--color-kind-approval); border-radius: 26px; }
+.ln.k-llm { --kc: var(--color-kind-llm); }
+.ln.k-step { --kc: var(--color-kind-step); }
+.ln.k-identity { --kc: var(--color-kind-identity); border-radius: 26px; }
 
 .node-panel {
   position: absolute; top: 12px; right: 12px; width: 320px; max-height: calc(100% - 24px); overflow: auto;
-  background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-lg); box-shadow: var(--shadow);
+  background: var(--color-ground); border: 1px solid var(--color-border-strong); border-radius: var(--r-lg); box-shadow: var(--shadow);
   padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5;
 }
 .np-name { font: 700 19px/1.2 var(--font-display); letter-spacing: -0.015em; }
-.blast { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.blast { border-top: 1px solid var(--color-border); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .blast-num { font-size: 14px; }
-.blast-num b { font: 700 28px var(--font-display); color: var(--fail); margin-right: 4px; }
+.blast-num b { font: 700 28px var(--font-display); color: var(--color-fail); margin-right: 4px; }
 .blast-kinds { display: flex; flex-wrap: wrap; gap: 6px 12px; }
-.blast-sens { padding: 10px 12px; border-radius: var(--r-md); background: color-mix(in srgb, var(--fail) 10%, transparent); border: 1px solid color-mix(in srgb, var(--fail) 35%, transparent); display: flex; flex-direction: column; gap: 4px; }
+.blast-sens { padding: 10px 12px; border-radius: var(--r-md); background: color-mix(in srgb, var(--color-fail) 10%, transparent); border: 1px solid color-mix(in srgb, var(--color-fail) 35%, transparent); display: flex; flex-direction: column; gap: 4px; }
 
 @media (max-width: 860px) {
   .lineage-page { height: auto; }

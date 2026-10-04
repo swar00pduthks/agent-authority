@@ -72,6 +72,10 @@ class Transport:
     def emit(self, event: dict[str, Any]) -> None:
         raise NotImplementedError
 
+    def emit_many(self, events: list[dict[str, Any]]) -> None:
+        for e in events:
+            self.emit(e)
+
 
 class HttpTransport(Transport):
     """POSTs to any OpenLineage HTTP endpoint (Authority, Marquez, ...)."""
@@ -137,6 +141,11 @@ class RunHandle:
     @property
     def run_id(self) -> str:
         return self.frame.run_id
+
+    @property
+    def pr_marker(self) -> str:
+        """Put this line in a pull/merge request description so review and merge webhooks link back here."""
+        return f"agent-authority-session: {self.frame.root_run_id}"
 
     def allow(self, rule: str | None = None) -> None:
         self.agent_facet["policy"] = {"decision": "allow", **({"rule": rule} if rule else {})}

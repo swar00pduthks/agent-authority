@@ -7,7 +7,7 @@
  *
  * Renders into a shadow root, so its styles never leak into the host and the host's never leak in.
  * Design tokens are CSS custom properties, so a host can restyle it from outside:
- *   agent-authority { --verified: #0b7; --font-body: Inter, sans-serif; }
+ *   agent-authority { --color-verified: #0b7; --font-body: Inter, sans-serif; }
  *
  * Properties: `getToken` (async () => bearer token, e.g. from MSAL for Entra).
  * Events (bubbling, composed): `agent-authority:navigate` {path}, `agent-authority:open-run` {runId},

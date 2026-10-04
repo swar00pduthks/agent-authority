@@ -91,7 +91,7 @@ export function OverviewPage({ stats }: { stats: Stats | null }) {
                   <tr key={a.agent_id}>
                     <td><div style={{ fontWeight: 600 }}>{a.name}</div><div className="faint mono">{a.owner ?? 'no owner'}</div></td>
                     <td className="num">{compact(a.runs)}<div className="faint">runs</div></td>
-                    <td className="num" style={{ color: a.denials ? 'var(--fail)' : undefined }}>{a.denials}<div className="faint">denied</div></td>
+                    <td className="num" style={{ color: a.denials ? 'var(--color-fail)' : undefined }}>{a.denials}<div className="faint">denied</div></td>
                   </tr>
                 ))}
               </tbody>

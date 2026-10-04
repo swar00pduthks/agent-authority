@@ -135,6 +135,18 @@ graph.invoke(inputs, config={"callbacks": [handler]})
 Events are standard OpenLineage `RunEvent`s with `ParentRunFacet` linkage and an `agent` run facet
 ([spec](docs/agent-facet.md)), so any OpenLineage consumer can still read them.
 
+## Audit-grade by design
+
+- **Tamper-evident.** Every stored event joins a per-session SHA-256 hash chain, and chain heads are anchored to
+  storage the database operator can't rewrite (WORM files or an Azure immutable blob container). The Audit record
+  shows **Record intact**, or exactly which event was altered, removed or rewritten.
+- **Ends at a person.** GitHub and GitLab review and merge webhooks become approval steps, so the chain of
+  authority for an agent's pull request ends at the named human who approved it.
+- **Entra / OIDC.** Every API call can require a valid token from your identity provider, with optional app roles
+  for reading and ingesting.
+- **Verdict colours can't be rebranded.** Hosts embedding the UI may change the accent and fonts, but
+  Accountable / Review / Unaccountable look the same everywhere.
+
 ## Embed it anywhere (micro-frontend)
 
 Agent Authority ships a framework-agnostic web component, so any product can show an audit record, sessions or
