@@ -15,7 +15,7 @@ from collections import OrderedDict
 from datetime import UTC, datetime
 from typing import Any
 
-from agenthub.collector.facets import FacetPolicy, canonical_json, dehydrate
+from agenthub.collector.facets import HASH_HEX, META_KEY, FacetPolicy, canonical_json, dehydrate
 from agenthub.collector.lru import LRUSet
 from agenthub.collector.policy import AGGREGATE, DROP, AgentFacetView, CapturePolicy
 from agenthub.model import (
@@ -134,7 +134,7 @@ class Collector:
             for fld in self.capture.offload_fields:
                 if fld in afacet and not (isinstance(afacet[fld], dict) and BLOB_KEY in afacet[fld]):
                     body = canonical_json(afacet[fld])
-                    h = hashlib.sha256(body.encode()).hexdigest()
+                    h = hashlib.sha256(body.encode()).hexdigest()[:HASH_HEX]
                     if not self.facet_cache.seen(("payload", h)):
                         b.payloads[h] = body
                         new_payload_bytes += len(body.encode())
@@ -192,7 +192,8 @@ class Collector:
             root, path = run_id, run_id
         self.paths.put(run_id, root, path)
 
-        dyn = {k: v for k, v in (dh.event["run"].get("facets") or {}).items()
+        dyn = {k: ({kk: vv for kk, vv in v.items() if kk != META_KEY} if isinstance(v, dict) else v)
+               for k, v in (dh.event["run"].get("facets") or {}).items()
                if not (isinstance(v, dict) and set(v) == {"$ref"}) and k != "parent"}
         err = (run_facets.get("errorMessage") or {}).get("message")
         rec = RunRecord(
@@ -269,7 +270,7 @@ class Collector:
         self._upsert_node(b, Node(jid, kind, ns, job_name, attrs))
 
         if dh.job_refs:
-            jhash = hashlib.sha256("|".join(sorted(dh.job_refs)).encode()).hexdigest()
+            jhash = hashlib.sha256("|".join(sorted(dh.job_refs)).encode()).hexdigest()[:HASH_HEX]
             if not self.struct_cache.seen(("ver", jid, jhash)):
                 b.node_versions.append(NodeVersion(jid, jhash, etime))
 

@@ -16,6 +16,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 REF_KEY = "$ref"
+META_KEY = "$meta"
+META_FIELDS = ("_producer", "_schemaURL")
+TOP_META_FIELDS = ("producer", "schemaURL")
+HASH_HEX = 32  # 128-bit content address
 
 # Location -> facet names treated as static. Anything not listed is dynamic.
 # Dataset ``facets`` are static by default (run-specific values live in
@@ -52,7 +56,30 @@ def facet_hash(name: str, body: Any) -> str:
     h.update(name.encode())
     h.update(b"\x00")
     h.update(canonical_json(body).encode())
-    return h.hexdigest()
+    return h.hexdigest()[:HASH_HEX]
+
+
+def _intern_meta(obj: dict[str, Any], fields: tuple[str, ...], refs: dict[str, tuple[str, str]]) -> dict[str, Any]:
+    """Replace the repeated producer/schemaURL envelope with a reference (it is identical across millions of events)."""
+    meta = {k: obj[k] for k in fields if k in obj}
+    if not meta:
+        return obj
+    h = facet_hash(META_KEY, meta)
+    refs[h] = (META_KEY, canonical_json(meta))
+    out = {META_KEY: h}
+    out.update({k: v for k, v in obj.items() if k not in fields})
+    return out
+
+
+def _restore_meta(obj: dict[str, Any], lookup: Callable[[str], str | None]) -> dict[str, Any]:
+    if not isinstance(obj, dict) or META_KEY not in obj:
+        return obj
+    stored = lookup(obj[META_KEY])
+    if stored is None:
+        raise KeyError(f"meta blob {obj[META_KEY]} not found")
+    out = json.loads(stored)
+    out.update({k: v for k, v in obj.items() if k != META_KEY})
+    return out
 
 
 @dataclass
@@ -98,7 +125,7 @@ def _dehydrate_facets(
             if on_ref:
                 on_ref(name, h)
         else:
-            out[name] = body
+            out[name] = _intern_meta(body, META_FIELDS, refs) if isinstance(body, dict) else body
     return out, local
 
 
@@ -122,13 +149,18 @@ def dehydrate(event: dict[str, Any], policy: FacetPolicy | None = None) -> Dehyd
                     schema_hash[(ns, nm)] = h
 
             ds["facets"], _ = _dehydrate_facets(ds.get("facets"), "dataset", policy, refs, _capture)
+            for fk in ("inputFacets", "outputFacets"):
+                if ds.get(fk):
+                    ds[fk] = {n: _intern_meta(b, META_FIELDS, refs) if isinstance(b, dict) else b
+                              for n, b in ds[fk].items()}
 
+    ev = _intern_meta(ev, TOP_META_FIELDS, refs)
     return Dehydrated(ev, refs, run_refs, job_refs, schema_hash)
 
 
 def rehydrate(event: dict[str, Any], lookup: Callable[[str], str | None]) -> dict[str, Any]:
     """Replace every ``{"$ref": h}`` facet with its stored body."""
-    ev = copy.deepcopy(event)
+    ev = _restore_meta(copy.deepcopy(event), lookup)
 
     def _fill(facets: dict[str, Any] | None) -> None:
         if not facets:
@@ -139,10 +171,14 @@ def rehydrate(event: dict[str, Any], lookup: Callable[[str], str | None]) -> dic
                 if stored is None:
                     raise KeyError(f"facet blob {body[REF_KEY]} ({name}) not found")
                 facets[name] = json.loads(stored)
+            else:
+                facets[name] = _restore_meta(body, lookup)
 
     _fill((ev.get("run") or {}).get("facets"))
     _fill((ev.get("job") or {}).get("facets"))
     for key in ("inputs", "outputs"):
         for ds in ev.get(key) or []:
             _fill(ds.get("facets"))
+            _fill(ds.get("inputFacets"))
+            _fill(ds.get("outputFacets"))
     return ev
