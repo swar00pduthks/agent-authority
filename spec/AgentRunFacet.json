@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/agent-hub/agent-hub/spec/AgentRunFacet.json",
+  "title": "AgentRunFacet",
+  "description": "Agent context for an OpenLineage run: role in the agent tree, identity, accountability and policy outcome.",
+  "allOf": [
+    { "$ref": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunFacet" },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["session", "agent", "step", "tool", "llm"] },
+        "agentId": { "type": "string" },
+        "owner": { "type": "string" },
+        "onBehalfOf": { "type": "string", "description": "Human principal the work is done for, e.g. user:alice" },
+        "model": { "type": "string" },
+        "latencyMs": { "type": "number" },
+        "tool": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "sideEffecting": { "type": "boolean" }
+          },
+          "required": ["name"]
+        },
+        "policy": {
+          "type": "object",
+          "properties": {
+            "decision": { "type": "string", "examples": ["allow", "deny", "approval_required"] },
+            "rule": { "type": "string" }
+          },
+          "required": ["decision"]
+        },
+        "prompt": {},
+        "completion": {},
+        "messages": {}
+      },
+      "required": ["kind"],
+      "additionalProperties": true
+    }
+  ]
+}

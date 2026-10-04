@@ -24,7 +24,7 @@ from agenthub.collector.policy import CapturePolicy
 from agenthub.model import NodeKind, RunRecord, RunState
 from agenthub.sentinel import Sentinel
 from agenthub.service import authority_chain, blast_radius, edge_dict, node_dict, replay
-from agenthub.storage.base import Store
+from agenthub.storage.base import Store, Subgraph
 
 log = logging.getLogger("agenthub.api")
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -219,7 +219,15 @@ def create_app(store: Store, collector: Collector | None = None, sentinel: Senti
     @app.get("/api/hub/graph", tags=["hub"])
     def graph(namespace: str | None = None, focus: str | None = None, depth: int = 3,
               direction: str = "both", limit: int = 2000) -> dict[str, Any]:
-        sg = store.subgraph(focus, depth, direction) if focus else store.graph(namespace, limit)
+        if focus:
+            sg = store.subgraph(focus, depth, direction)
+        else:
+            sg = store.graph(None, limit)
+            if namespace:  # the namespace's nodes plus their direct neighbours, so the view stays connected
+                core = {n.id for n in sg.nodes if n.namespace == namespace}
+                keep = core | {e.dst for e in sg.edges if e.src in core} | {e.src for e in sg.edges if e.dst in core}
+                sg = Subgraph([n for n in sg.nodes if n.id in keep],
+                              [e for e in sg.edges if e.src in keep and e.dst in keep])
         return {"nodes": [node_dict(n) for n in sg.nodes], "edges": [edge_dict(e) for e in sg.edges]}
 
     @app.get("/api/hub/nodes", tags=["hub"])

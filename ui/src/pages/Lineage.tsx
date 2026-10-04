@@ -95,7 +95,7 @@ function Graph() {
     }
   }), [graph.data, blast, hotIds])
 
-  useEffect(() => { const t = setTimeout(() => flow.fitView({ padding: 0.12, duration: 300 }), 60); return () => clearTimeout(t) }, [ns, graph.data?.nodes.length, flow])
+  useEffect(() => { const t = setTimeout(() => flow.fitView({ padding: 0.12, duration: 300, maxZoom: 1.1 }), 60); return () => clearTimeout(t) }, [ns, graph.data?.nodes.length, flow])
 
   const runBlast = async (id: string) => setBlast(await get<BlastRadius>('/api/hub/blast-radius', { node: id }))
 
@@ -123,7 +123,7 @@ function Graph() {
         </span>
       </div>
       <div className="lineage-wrap panel">
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08 }} minZoom={0.15} proOptions={{ hideAttribution: true }}
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1.1 }} minZoom={0.15} proOptions={{ hideAttribution: true }}
           onNodeClick={(_, n) => { setSelected((n.data as NodeData).g); setBlast(null) }} onPaneClick={() => setSelected(null)}
           nodesConnectable={false} colorMode="system">
           <Background gap={24} size={1} color="var(--line)" />
