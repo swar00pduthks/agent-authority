@@ -75,11 +75,27 @@ def cmd_seed(args: argparse.Namespace) -> None:
             req = urllib.request.Request(endpoint, json.dumps(ev).encode(), {"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=10).close()
 
-    t = DemoTraffic(post)
+    sink = post
+    if args.kafka:
+        from confluent_kafka import Producer
+
+        producer = Producer({"bootstrap.servers": args.kafka})
+        endpoint = f"kafka://{args.kafka}/{args.topic}"
+
+        def to_kafka(events: list[dict]) -> None:
+            for ev in events:  # key by run id so a run's events stay ordered within a partition
+                producer.produce(args.topic, json.dumps(ev).encode(), key=ev["run"]["runId"].encode())
+            producer.poll(0)
+
+        sink = to_kafka
+
+    t = DemoTraffic(sink)
     t.seed(args.count)
+    if args.kafka:
+        producer.flush(10)
+    print(f"seeded {endpoint}")
     if args.follow:
         t.run_forever()
-    print(f"seeded {endpoint}")
 
 
 def cmd_scan(args: argparse.Namespace) -> None:
@@ -117,7 +133,9 @@ def main(argv: list[str] | None = None) -> None:
     sd = sub.add_parser("seed", help="send demo traffic to a running hub or any OpenLineage endpoint")
     sd.add_argument("--url", default="http://localhost:8000")
     sd.add_argument("--count", type=int, default=50)
-    sd.add_argument("--follow", action="store_true")
+    sd.add_argument("--follow", action="store_true", help="keep sending live traffic")
+    sd.add_argument("--kafka", metavar="BOOTSTRAP", help="produce to Kafka instead of HTTP, e.g. localhost:29092")
+    sd.add_argument("--topic", default="openlineage.events")
     sd.set_defaults(fn=cmd_seed)
 
     sc = sub.add_parser("scan", help="print Sentinel findings (use --fail-on in CI)")

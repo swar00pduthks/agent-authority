@@ -119,6 +119,8 @@ class _Frame:
     root_job: tuple[str, str]
 
 
+Frame = _Frame  # public alias for integrations that manage run ids themselves
+
 _current: contextvars.ContextVar[_Frame | None] = contextvars.ContextVar("agenthub_frame", default=None)
 
 
@@ -222,6 +224,11 @@ class AgentHub:
             self._emit("COMPLETE", frame, parent, agent_facet, handle.inputs, handle.outputs)
         finally:
             _current.reset(token)
+
+    def emit(self, event_type: str, frame: _Frame, parent: _Frame | None, agent_facet: dict[str, Any],
+             inputs: list[Dataset] | None = None, outputs: list[Dataset] | None = None, error: str | None = None) -> None:
+        """Low-level emit for integrations (e.g. framework callbacks) that track run ids themselves."""
+        self._emit(event_type, frame, parent, agent_facet, inputs or [], outputs or [], error)
 
     def _emit(self, event_type: str, frame: _Frame, parent: _Frame | None, agent_facet: dict[str, Any],
               inputs: list[Dataset], outputs: list[Dataset], error: str | None = None) -> None:

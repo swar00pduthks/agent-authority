@@ -1,0 +1,15 @@
+# AgentHub capture policy. Mount and point AGENTHUB_POLICY at this file.
+
+# Name of the run facet that carries agent context (align with your AgentRunFacet version).
+agent_facet_name: agent
+
+agent_capture:
+  # Fraction of runs kept per agent kind. Failures and policy denials are always kept.
+  sample:
+    llm: 0.05
+  # Read-only tool calls with no dataset I/O become per-step counts instead of runs.
+  aggregate_read_only_tools: true
+
+payloads:
+  # Agent facet fields moved to blob storage (hash + pointer) instead of stored inline.
+  offload_fields: [prompt, completion, messages]

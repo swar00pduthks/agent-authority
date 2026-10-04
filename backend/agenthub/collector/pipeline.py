@@ -107,7 +107,14 @@ class Collector:
     def flush(self) -> Batch:
         batch, self.batch = self.batch, Batch()
         if len(batch) or batch.stats.events_in:
-            self.store.write_batch(batch)
+            try:
+                self.store.write_batch(batch)
+            except Exception:
+                # The caches claim "already written" for blobs/nodes in this batch. Forget them so the
+                # redelivered events (at-least-once) rewrite everything they need.
+                self.facet_cache = LRUSet(self.facet_cache.capacity)
+                self.struct_cache = LRUSet(self.struct_cache.capacity)
+                raise
         return batch
 
     # ------------------------------------------------------------ internals

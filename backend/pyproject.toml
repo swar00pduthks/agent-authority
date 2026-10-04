@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "agenthub"
 version = "0.1.0"
 description = "OpenLineage-native lineage and governance hub for data pipelines and AI agents"
-readme = "../README.md"
+readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
 dependencies = [
@@ -18,9 +18,9 @@ dependencies = [
 
 [project.optional-dependencies]
 clickhouse = ["clickhouse-connect>=0.7"]
-postgres = ["psycopg[binary]>=3.1"]
+postgres = ["psycopg[binary]>=3.1", "psycopg-pool>=3.2"]
 kafka = ["confluent-kafka>=2.3"]
-prod = ["clickhouse-connect>=0.7", "psycopg[binary]>=3.1", "confluent-kafka>=2.3"]
+prod = ["clickhouse-connect>=0.7", "psycopg[binary]>=3.1", "psycopg-pool>=3.2", "confluent-kafka>=2.3"]
 dev = ["pytest>=8", "httpx>=0.27", "chdb>=2.0", "psycopg[binary]>=3.1", "ruff>=0.4"]
 
 [project.scripts]
@@ -30,6 +30,9 @@ agenthub-collector = "agenthub.collector.kafka_consumer:main"
 
 [tool.setuptools.packages.find]
 include = ["agenthub*"]
+
+[tool.setuptools.package-data]
+agenthub = ["static/**/*", "static/*", "storage/sql/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -39,7 +39,8 @@ class Finding:
 
     @property
     def id(self) -> str:
-        return hashlib.sha1(f"{self.rule}|{self.run_id}|{self.node_id}".encode()).hexdigest()[:12]
+        """Stable per problem (rule + agent + target), not per occurrence."""
+        return hashlib.sha1(f"{self.rule}|{self.agent_id}|{self.node_id}|{self.title}".encode()).hexdigest()[:12]
 
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, **asdict(self)}
@@ -123,7 +124,10 @@ def deny_then_retry(ctx: Context) -> Iterable[Finding]:
         denied = [r for r in rs if is_deny(r.policy_decision)]
         if not denied:
             continue
-        after = [r for r in rs if (r.start_time or r.last_event_time) > (denied[0].start_time or denied[0].last_event_time)]
+        first = denied[0]
+        t_first = first.start_time or first.last_event_time
+        # ">=" because storage keeps millisecond precision and fast retries can share a timestamp
+        after = [r for r in rs if r is not first and (r.start_time or r.last_event_time) >= t_first]
         if after:
             agent = _nearest_agent(ctx.chain(after[-1]))
             escalated = any((x.policy_decision or "").lower() in ALLOW for x in after)

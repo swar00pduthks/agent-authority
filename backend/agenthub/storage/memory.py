@@ -15,10 +15,10 @@ from agenthub.model import (
     RawEvent,
     RunIO,
     RunRecord,
-    RunState,
     ToolAggregate,
 )
 from agenthub.storage.base import Batch, GraphEdge, Store, Subgraph
+from agenthub.storage.common import build_agent_catalog
 
 
 class MemoryStore(Store):
@@ -188,56 +188,7 @@ class MemoryStore(Store):
 
     def agent_catalog(self) -> list[dict[str, Any]]:
         with self._lock:
-            agents: dict[str, dict[str, Any]] = {}
-            for r in self.runs.values():
-                if r.job_kind != NodeKind.AGENT:
-                    continue
-                aid = r.agent_id or f"{r.namespace}/{r.job_name}"
-                a = agents.setdefault(aid, {
-                    "agent_id": aid, "name": r.job_name, "namespace": r.namespace, "owner": r.owner,
-                    "runs": 0, "failures": 0, "denials": 0, "tools": set(), "models": set(),
-                    "principals": set(), "last_seen": None,
-                })
-                a["runs"] += 1
-                a["failures"] += int(r.state == RunState.FAIL)
-                a["owner"] = a["owner"] or r.owner
-                principal, p = r.on_behalf_of, r
-                while principal is None and p and p.parent_run_id:  # inherit from the delegation chain
-                    p = self.runs.get(p.parent_run_id)
-                    principal = p.on_behalf_of if p else None
-                if principal:
-                    a["principals"].add(principal)
-                t = r.last_event_time
-                if t and (a["last_seen"] is None or t > a["last_seen"]):
-                    a["last_seen"] = t
-                stack = list(self.children.get(r.run_id, []))
-                while stack:
-                    c = self.runs.get(stack.pop())
-                    if not c:
-                        continue
-                    if c.agent_id and c.agent_id != r.agent_id and c.job_kind == NodeKind.AGENT:
-                        continue  # sub-agent: counted under its own entry
-                    if c.tool_name:
-                        a["tools"].add(c.tool_name)
-                    if c.model:
-                        a["models"].add(c.model)
-                    if (c.policy_decision or "").lower() in ("deny", "denied", "block"):
-                        a["denials"] += 1
-                    stack.extend(self.children.get(c.run_id, []))
-            for (pid, tool), _agg in self.tool_aggs.items():
-                p = self.runs.get(pid) if pid else None
-                while p and p.job_kind != NodeKind.AGENT and p.parent_run_id:
-                    p = self.runs.get(p.parent_run_id)
-                if p and p.job_kind == NodeKind.AGENT:
-                    aid = p.agent_id or f"{p.namespace}/{p.job_name}"
-                    if aid in agents:
-                        agents[aid]["tools"].add(tool)
-            out = []
-            for a in agents.values():
-                for k in ("tools", "models", "principals"):
-                    a[k] = sorted(a[k])
-                out.append(a)
-            return sorted(out, key=lambda a: a["runs"], reverse=True)
+            return build_agent_catalog(self.runs, self.tool_aggs.values())
 
     def stats(self) -> dict[str, Any]:
         with self._lock:
