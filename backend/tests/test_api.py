@@ -71,7 +71,8 @@ def test_hub_endpoints(client):
 
 
 def test_scoping_for_embedded_views(client):
-    ns = "appbuilder/trade-break-dashboard"
+    ns = next(s["namespace"] for s in client.get("/api/authority/sessions", params={"limit": 500}).json()
+              if s["namespace"].startswith("appbuilder/"))
     sessions = client.get("/api/authority/sessions", params={"namespace": ns}).json()
     assert sessions and all(s["namespace"] == ns for s in sessions)
     sid = sessions[0]["run_id"]

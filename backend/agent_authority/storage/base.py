@@ -123,6 +123,18 @@ class Store(ABC):
     def raw_events(self, run_id: str) -> list[RawEvent]: ...
 
     @abstractmethod
+    def chain_events(self, chain_key: str) -> list[RawEvent]:
+        """All stored events of one tamper-evidence chain, in sequence order."""
+
+    @abstractmethod
+    def chain_head(self, chain_key: str) -> tuple[int, str] | None:
+        """(seq, hash) of the chain's newest stored event, or None."""
+
+    @abstractmethod
+    def get_facet_named(self, h: str) -> tuple[str, str | None]:
+        """(facet name, canonical body) for a facet hash; body None when missing."""
+
+    @abstractmethod
     def tool_aggregates(self, parent_run_id: str | None = None) -> list[ToolAggregate]: ...
 
     @abstractmethod

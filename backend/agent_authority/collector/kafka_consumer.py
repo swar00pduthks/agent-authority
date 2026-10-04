@@ -33,7 +33,13 @@ def main() -> None:
     batch_ms = int(os.getenv("COLLECTOR_BATCH_MS", "1000"))
 
     store = build_prod_store_from_env()
-    collector = Collector(store, capture_policy=CapturePolicy.load(os.getenv("AUTHORITY_POLICY")))
+    from agent_authority.integrity import anchor_sink_from_env
+
+    anchors = anchor_sink_from_env()
+    if anchors is None:
+        log.warning("no integrity anchor sink configured (AUTHORITY_ANCHOR_DIR or AUTHORITY_ANCHOR_AZURE_*): "
+                    "audit records will verify as 'unanchored'")
+    collector = Collector(store, capture_policy=CapturePolicy.load(os.getenv("AUTHORITY_POLICY")), anchors=anchors)
     consumer = Consumer({
         "bootstrap.servers": brokers,
         "group.id": os.getenv("KAFKA_GROUP", "authority-collector"),

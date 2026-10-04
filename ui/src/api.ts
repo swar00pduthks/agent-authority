@@ -119,6 +119,8 @@ export interface AuthorityConfig {
   namespace?: string
   /** Returns a bearer token (e.g. an Entra access token) for API calls. */
   getToken?: () => string | null | Promise<string | null>
+  /** Called once when the API answers 401 (e.g. an expired Entra token); the request is then retried once. */
+  onUnauthorized?: () => void | Promise<void>
 }
 
 export const config: AuthorityConfig = { apiBase: '' }
@@ -134,10 +136,18 @@ export async function get<T>(path: string, params?: Record<string, string | numb
   if (config.namespace && p.namespace === undefined && SCOPED.includes(path)) p.namespace = config.namespace
   const entries = Object.entries(p).filter(([, v]) => v !== undefined && v !== '')
   const q = entries.length ? '?' + entries.map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join('&') : ''
-  const headers: Record<string, string> = {}
-  const token = config.getToken ? await config.getToken() : null
-  if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${config.apiBase.replace(/\/$/, '')}${path}${q}`, { headers })
+  const url = `${config.apiBase.replace(/\/$/, '')}${path}${q}`
+  const call = async () => {
+    const headers: Record<string, string> = {}
+    const token = config.getToken ? await config.getToken() : null
+    if (token) headers.Authorization = `Bearer ${token}`
+    return fetch(url, { headers })
+  }
+  let res = await call()
+  if (res.status === 401 && config.onUnauthorized) {
+    await config.onUnauthorized()
+    res = await call()
+  }
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${path}`)
   return res.json() as Promise<T>
 }
@@ -189,3 +199,14 @@ export function ms(n: number | null): string {
 
 export const short = (id: string | null | undefined, n = 8) => (id ? id.slice(0, n) : '—')
 export const compact = (n: number) => Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+
+export interface Integrity {
+  chain_key: string
+  status: 'intact' | 'broken' | 'unanchored' | 'empty'
+  events: number
+  head_seq: number
+  head_hash: string | null
+  anchored_seq: number | null
+  anchored_at: string | null
+  problems: string[]
+}

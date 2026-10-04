@@ -13,14 +13,16 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from agent_authority import __version__
+from agent_authority.auth import AuthConfig, Authenticator, AuthError
 from agent_authority.collector.pipeline import Collector, InvalidEvent
 from agent_authority.collector.policy import CapturePolicy
+from agent_authority.integrity import AnchorSink, MemoryAnchorSink, anchor_sink_from_env, verify_chain
 from agent_authority.model import NodeKind, RunRecord, RunState
 from agent_authority.sentinel import Sentinel
 from agent_authority.service import authority_chain, blast_radius, edge_dict, node_dict, replay
@@ -61,13 +63,35 @@ def _tree(runs: list[RunRecord], root: str) -> dict[str, Any] | None:
 
 
 def create_app(store: Store, collector: Collector | None = None, sentinel: Sentinel | None = None,
-               api_key: str | None = None) -> FastAPI:
-    collector = collector or Collector(store, capture_policy=CapturePolicy.load(os.getenv("AUTHORITY_POLICY")))
+               api_key: str | None = None, auth: AuthConfig | None = None,
+               anchors: AnchorSink | None = None) -> FastAPI:
+    anchors = anchors if anchors is not None else (anchor_sink_from_env() or MemoryAnchorSink())
+    collector = collector or Collector(store, capture_policy=CapturePolicy.load(os.getenv("AUTHORITY_POLICY")),
+                                       anchors=anchors)
     sentinel = sentinel or Sentinel(store)
     lock = threading.Lock()
     app = FastAPI(title="Agent Authority", version=__version__,
                   description="OpenLineage-native lineage and governance for data pipelines and AI agents")
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+    auth = auth or AuthConfig()
+    if api_key:
+        auth.api_key = api_key
+    authenticator = Authenticator(auth)
+
+    @app.middleware("http")
+    async def authenticate(request: Request, call_next):
+        path = request.url.path
+        if request.method != "OPTIONS" and path.startswith("/api/"):
+            try:
+                request.state.principal = authenticator.authenticate(
+                    path, request.method, request.headers.get("authorization"))
+            except AuthError as exc:
+                hdrs = {"WWW-Authenticate": 'Bearer error="invalid_token"'} if exc.status == 401 else None
+                return JSONResponse({"detail": exc.message}, status_code=exc.status, headers=hdrs)
+        return await call_next(request)
+
+    # CORS is added last so it wraps the auth middleware and 401s still carry CORS headers.
+    origins = [o.strip() for o in os.getenv("AUTHORITY_CORS_ORIGINS", "*").split(",") if o.strip()]
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
     app.state.store, app.state.collector, app.state.sentinel = store, collector, sentinel
 
     def ingest_events(events: list[dict[str, Any]]) -> dict[str, int]:
@@ -78,12 +102,8 @@ def create_app(store: Store, collector: Collector | None = None, sentinel: Senti
 
     app.state.ingest = ingest_events
 
-    def check_key(authorization: str | None = Header(default=None)) -> None:
-        if api_key and authorization != f"Bearer {api_key}":
-            raise HTTPException(401, "invalid API key")
-
     # ------------------------------------------------------------- ingest
-    @app.post("/api/v1/lineage", status_code=201, dependencies=[Depends(check_key)], tags=["openlineage"])
+    @app.post("/api/v1/lineage", status_code=201, tags=["openlineage"])
     def ingest(payload: dict[str, Any] | list[dict[str, Any]] = Body(...)) -> dict[str, Any]:
         events = payload if isinstance(payload, list) else [payload]
         try:
@@ -142,7 +162,13 @@ def create_app(store: Store, collector: Collector | None = None, sentinel: Senti
     # ---------------------------------------------------------- hub api
     @app.get("/api/authority/health", tags=["authority"])
     def health() -> dict[str, Any]:
-        return {"status": "ok", "version": __version__, "store": type(store).__name__}
+        return {"status": "ok", "version": __version__, "store": type(store).__name__,
+                "auth": "oidc" if auth.oidc_enabled else "open"}
+
+    @app.get("/api/authority/me", tags=["authority"])
+    def me(request: Request) -> dict[str, Any]:
+        p = request.state.principal
+        return {"subject": p.subject, "name": p.name, "roles": p.roles, "via": p.via}
 
     @app.get("/api/authority/stats", tags=["authority"])
     def stats() -> dict[str, Any]:
@@ -187,6 +213,11 @@ def create_app(store: Store, collector: Collector | None = None, sentinel: Senti
                 for a in store.tool_aggregates()
                 if a.parent_run_id and (r := store.get_run(a.parent_run_id)) and r.root_run_id == root_run_id]
         return {"tree": tree, "aggregated_tools": aggs}
+
+    @app.get("/api/authority/sessions/{root_run_id}/integrity", tags=["authority"])
+    def session_integrity(root_run_id: str) -> dict[str, Any]:
+        """Verify the session's hash chain, its blobs, and that every anchored head is still present."""
+        return verify_chain(store, root_run_id, collector.anchors).to_dict()
 
     @app.get("/api/authority/runs/{run_id}", tags=["authority"])
     def get_run(run_id: str) -> dict[str, Any]:
@@ -297,5 +328,5 @@ def run() -> None:
     import uvicorn
 
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
-    app = create_app(build_store_from_env(), api_key=os.getenv("AUTHORITY_API_KEY"))
+    app = create_app(build_store_from_env(), auth=AuthConfig.from_env())
     uvicorn.run(app, host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "8000")))

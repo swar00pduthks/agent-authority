@@ -196,6 +196,11 @@ class RawEvent:
     job_name: str
     payload: str  # dehydrated OpenLineage JSON
     bytes_in: int
+    # tamper-evidence chain (see integrity.py)
+    chain_key: str = ""
+    seq: int = 0
+    prev_hash: str = ""
+    hash: str = ""
 
 
 @dataclass

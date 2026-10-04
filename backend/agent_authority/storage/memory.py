@@ -36,6 +36,7 @@ class MemoryStore(Store):
         self.out_adj: dict[str, set[tuple[str, str, str]]] = defaultdict(set)
         self.in_adj: dict[str, set[tuple[str, str, str]]] = defaultdict(set)
         self.raw: dict[str, list[RawEvent]] = defaultdict(list)
+        self.chains: dict[str, list[RawEvent]] = defaultdict(list)
         self.tool_aggs: dict[tuple[str | None, str], ToolAggregate] = {}
         self.ingest = IngestStats()
 
@@ -76,6 +77,8 @@ class MemoryStore(Store):
             self.io.extend(batch.run_io)
             for ev in batch.raw:
                 self.raw[ev.run_id].append(ev)
+                if ev.chain_key:
+                    self.chains[ev.chain_key].append(ev)
             for key, a in batch.tool_aggs.items():
                 cur = self.tool_aggs.get(key)
                 if cur:
@@ -182,6 +185,19 @@ class MemoryStore(Store):
 
     def raw_events(self, run_id: str) -> list[RawEvent]:
         return list(self.raw.get(run_id, []))
+
+    def chain_events(self, chain_key: str) -> list[RawEvent]:
+        return sorted(self.chains.get(chain_key, []), key=lambda e: e.seq)
+
+    def chain_head(self, chain_key: str) -> tuple[int, str] | None:
+        evs = self.chains.get(chain_key)
+        if not evs:
+            return None
+        last = max(evs, key=lambda e: e.seq)
+        return last.seq, last.hash
+
+    def get_facet_named(self, h: str) -> tuple[str, str | None]:
+        return self.facet_names.get(h, ""), self.facets.get(h)
 
     def tool_aggregates(self, parent_run_id=None) -> list[ToolAggregate]:
         return [a for k, a in self.tool_aggs.items() if parent_run_id is None or k[0] == parent_run_id]

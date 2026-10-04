@@ -18,6 +18,7 @@ from typing import Any
 from agent_authority.collector.facets import HASH_HEX, META_KEY, FacetPolicy, canonical_json, dehydrate
 from agent_authority.collector.lru import LRUSet
 from agent_authority.collector.policy import AGGREGATE, DROP, AgentFacetView, CapturePolicy
+from agent_authority.integrity import GENESIS, Anchor, AnchorSink, link_hash
 from agent_authority.model import (
     EdgeObs,
     EdgeType,
@@ -80,8 +81,12 @@ class Collector:
         facet_policy: FacetPolicy | None = None,
         capture_policy: CapturePolicy | None = None,
         cache_size: int = 200_000,
+        anchors: AnchorSink | None = None,
     ) -> None:
         self.store = store
+        self.anchors = anchors
+        self.chain_heads: OrderedDict[str, tuple[int, str]] = OrderedDict()
+        self.chain_cache_size = cache_size
         self.facet_policy = facet_policy or FacetPolicy()
         self.capture = capture_policy or CapturePolicy()
         self.facet_cache = LRUSet(cache_size)
@@ -110,12 +115,39 @@ class Collector:
             try:
                 self.store.write_batch(batch)
             except Exception:
-                # The caches claim "already written" for blobs/nodes in this batch. Forget them so the
-                # redelivered events (at-least-once) rewrite everything they need.
+                # The caches claim "already written" for blobs/nodes in this batch, and the chain heads point at
+                # links that never landed. Forget them so redelivered events (at-least-once) start from the store.
                 self.facet_cache = LRUSet(self.facet_cache.capacity)
                 self.struct_cache = LRUSet(self.struct_cache.capacity)
+                self.chain_heads.clear()
                 raise
+            self._anchor(batch)
         return batch
+
+    def _anchor(self, batch: Batch) -> None:
+        if self.anchors is None or not batch.raw:
+            return
+        heads: dict[str, RawEvent] = {}
+        for ev in batch.raw:
+            if ev.chain_key and (ev.chain_key not in heads or ev.seq > heads[ev.chain_key].seq):
+                heads[ev.chain_key] = ev
+        at = datetime.now(UTC).isoformat()
+        try:
+            self.anchors.append([Anchor(k, e.seq, e.hash, at) for k, e in heads.items()])
+        except Exception:  # the data is stored; a missed anchor shows up as "unanchored" on verification
+            log.exception("failed to write integrity anchors for %d chains", len(heads))
+
+    def _link(self, chain_key: str, payload: str) -> tuple[int, str, str]:
+        head = self.chain_heads.get(chain_key)
+        if head is None:
+            head = self.store.chain_head(chain_key) or (0, GENESIS)
+        seq, prev = head[0] + 1, head[1]
+        h = link_hash(prev, seq, payload)
+        self.chain_heads[chain_key] = (seq, h)
+        self.chain_heads.move_to_end(chain_key)
+        if len(self.chain_heads) > self.chain_cache_size:
+            self.chain_heads.popitem(last=False)
+        return seq, prev, h
 
     # ------------------------------------------------------------ internals
     def _process(self, event: dict[str, Any]) -> str:
@@ -245,7 +277,8 @@ class Collector:
                 ))
 
         payload = json.dumps(dh.event, separators=(",", ":"), ensure_ascii=False)
-        b.raw.append(RawEvent(etime, state.name, run_id, ns, job_name, payload, raw_bytes))
+        seq, prev, h = self._link(root, payload)
+        b.raw.append(RawEvent(etime, state.name, run_id, ns, job_name, payload, raw_bytes, root, seq, prev, h))
         st.runs_kept_events += 1
         st.bytes_stored += len(payload.encode()) + new_facet_bytes + new_payload_bytes
         b.stats.add(st)

@@ -1,6 +1,7 @@
+import { ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ago, get, ms, usePoll, type Authority, type Finding, type Run } from '../api'
+import { ago, get, ms, usePoll, type Authority, type Finding, type Integrity, type Run } from '../api'
 import { AuthorityTrail } from '../components/AuthorityTrail'
 import { decisionTone, Empty, ErrorNote, KIND_ICON, Pill } from '../components/bits'
 import { useRunDrawer } from '../components/RunDrawer'
@@ -24,6 +25,7 @@ export function AuditPage({ sessionId }: { sessionId?: string }) {
   const open = useRunDrawer()
   const tree = usePoll(() => get<{ tree: Run }>(`/api/authority/sessions/${id}/tree`), [id])
   const findings = usePoll(() => get<Finding[]>('/api/authority/findings', { session: id }), [id])
+  const integrity = usePoll(() => get<Integrity>(`/api/authority/sessions/${id}/integrity`), [id], 15000)
   const [chains, setChains] = useState<Authority[] | null>(null)
 
   const runs = tree.data ? flatten(tree.data.tree) : []
@@ -62,6 +64,7 @@ export function AuditPage({ sessionId }: { sessionId?: string }) {
             <div><dt>Models</dt><dd>{models.length ? models.join(', ') : '—'}</dd></div>
             <div><dt>Steps</dt><dd>{runs.length} runs · {actions.length} actions</dd></div>
           </dl>
+          {integrity.data && <IntegrityBadge r={integrity.data} />}
         </div>
         <div className={`stamp big ${verdict}`}>{verdict === 'pass' ? 'Accountable' : verdict === 'warn' ? 'Review' : 'Unaccountable'}</div>
       </header>
@@ -130,6 +133,30 @@ export function AuditPage({ sessionId }: { sessionId?: string }) {
             </ul>
           </section>
         </aside>
+      </div>
+    </div>
+  )
+}
+
+function IntegrityBadge({ r }: { r: Integrity }) {
+  if (r.status === 'empty') return null
+  const Icon = r.status === 'intact' ? ShieldCheck : r.status === 'broken' ? ShieldAlert : ShieldQuestion
+  const title = r.status === 'intact' ? 'Record intact' : r.status === 'broken' ? 'Record altered' : 'Not yet anchored'
+  const detail = r.status === 'intact'
+    ? `${r.events} events hash-chained; head anchored ${ago(r.anchored_at)}`
+    : r.status === 'unanchored'
+      ? `${r.events} events hash-chained, but no head has been written to immutable storage yet`
+      : `${r.problems.length} problem${r.problems.length > 1 ? 's' : ''} found when re-checking the hash chain`
+  return (
+    <div className={`integrity ${r.status}`} role="status">
+      <Icon size={16} />
+      <div>
+        <div className="integrity-title">{title}</div>
+        <div className="integrity-detail">{detail}</div>
+        {r.problems.length > 0 && (
+          <ul>{r.problems.slice(0, 5).map((p) => <li key={p}>{p}</li>)}</ul>
+        )}
+        {r.head_hash && <div className="integrity-hash mono" title={r.head_hash}>head {r.head_hash.slice(0, 16)}… · seq {r.head_seq}</div>}
       </div>
     </div>
   )

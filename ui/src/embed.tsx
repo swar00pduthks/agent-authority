@@ -10,7 +10,8 @@
  *   agent-authority { --verified: #0b7; --font-body: Inter, sans-serif; }
  *
  * Properties: `getToken` (async () => bearer token, e.g. from MSAL for Entra).
- * Events (bubbling, composed): `agent-authority:navigate` {path}, `agent-authority:open-run` {runId}.
+ * Events (bubbling, composed): `agent-authority:navigate` {path}, `agent-authority:open-run` {runId},
+ *   `agent-authority:token-expired` {retry} — refresh the token (or set a new `getToken`), then call `retry()`.
  */
 import '@xyflow/react/dist/style.css'
 import './theme.css'
@@ -106,6 +107,11 @@ export class AgentAuthorityElement extends HTMLElement {
       apiBase: this.getAttribute('api-base') ?? '',
       namespace: this.getAttribute('namespace') ?? undefined,
       getToken: this._getToken,
+      // Tell the host its token was rejected, give it a moment to refresh, then the request retries once.
+      onUnauthorized: () => new Promise<void>((resolve) => {
+        this.emit('token-expired', { retry: resolve })
+        setTimeout(resolve, 3000)
+      }),
     })
     const view = this.getAttribute('view') ?? 'overview'
     const path = (VIEWS[view] ?? VIEWS.overview)(this)

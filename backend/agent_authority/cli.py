@@ -80,8 +80,10 @@ def cmd_seed(args: argparse.Namespace) -> None:
         endpoint = f"kafka://{args.kafka}/{args.topic}"
 
         def to_kafka(events: list[dict]) -> None:
-            for ev in events:  # key by run id so a run's events stay ordered within a partition
-                producer.produce(args.topic, json.dumps(ev).encode(), key=ev["run"]["runId"].encode())
+            for ev in events:  # key by session root so one collector owns each session's integrity chain
+                parent = (ev["run"].get("facets") or {}).get("parent") or {}
+                root = ((parent.get("root") or {}).get("run") or {}).get("runId") or ev["run"]["runId"]
+                producer.produce(args.topic, json.dumps(ev).encode(), key=root.encode())
             producer.poll(0)
 
         sink = to_kafka

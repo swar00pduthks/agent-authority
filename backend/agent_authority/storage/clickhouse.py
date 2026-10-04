@@ -166,8 +166,9 @@ class ClickHouseRunStore:
                                      for x in b.run_io],
                       ["dataset_id", "run_id", "direction", "schema_hash", "row_count", "event_time"])
         self.c.insert(t + "raw_events", [[e.run_id, e.event_time, e.event_type, e.namespace, e.job_name, e.bytes_in,
-                                          e.payload] for e in b.raw],
-                      ["run_id", "event_time", "event_type", "namespace", "job_name", "bytes_in", "payload"])
+                                          e.payload, e.chain_key, e.seq, e.prev_hash, e.hash] for e in b.raw],
+                      ["run_id", "event_time", "event_type", "namespace", "job_name", "bytes_in", "payload",
+                       "chain_key", "seq", "prev_hash", "hash"])
         self.c.insert(t + "tool_aggregates", [[a.parent_run_id or "", a.tool_name, a.calls, a.failures, a.total_ms,
                                                a.last_seen] for a in b.tool_aggs.values()],
                       ["parent_run_id", "tool_name", "calls", "failures", "total_ms", "last_seen"])
@@ -226,10 +227,28 @@ class ClickHouseRunStore:
                       None if r["row_count"] is None else int(r["row_count"]), _dt(r["event_time"]))
                 for r in self._sql(sql)]
 
+    @staticmethod
+    def _raw(r: dict[str, Any]) -> RawEvent:
+        return RawEvent(_dt(r["event_time"]), r["event_type"], r["run_id"], r["namespace"], r["job_name"],
+                        r["payload"], int(r["bytes_in"]), r.get("chain_key") or "", int(r.get("seq") or 0),
+                        r.get("prev_hash") or "", r.get("hash") or "")
+
     def raw_events(self, run_id: str) -> list[RawEvent]:
         rows = self._sql("SELECT * FROM {db}.raw_events WHERE run_id = %(r)s ORDER BY event_time", r=run_id)
-        return [RawEvent(_dt(r["event_time"]), r["event_type"], r["run_id"], r["namespace"], r["job_name"],
-                         r["payload"], int(r["bytes_in"])) for r in rows]
+        return [self._raw(r) for r in rows]
+
+    def chain_events(self, chain_key: str) -> list[RawEvent]:
+        rows = self._sql("SELECT * FROM {db}.raw_events WHERE chain_key = %(k)s ORDER BY seq", k=chain_key)
+        return [self._raw(r) for r in rows]
+
+    def chain_head(self, chain_key: str) -> tuple[int, str] | None:
+        rows = self._sql("SELECT seq, hash FROM {db}.raw_events WHERE chain_key = %(k)s ORDER BY seq DESC LIMIT 1",
+                         k=chain_key)
+        return (int(rows[0]["seq"]), rows[0]["hash"]) if rows else None
+
+    def get_facet_named(self, h: str) -> tuple[str, str | None]:
+        rows = self._sql("SELECT facet_name, body FROM {db}.facet_blob WHERE hash = %(h)s LIMIT 1", h=h)
+        return (rows[0]["facet_name"], rows[0]["body"]) if rows else ("", None)
 
     def tool_aggregates(self, parent_run_id=None) -> list[ToolAggregate]:
         where = f" WHERE parent_run_id = {q(parent_run_id)}" if parent_run_id else ""

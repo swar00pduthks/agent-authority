@@ -72,7 +72,12 @@ CREATE TABLE IF NOT EXISTS {db}.raw_events (
     namespace   LowCardinality(String),
     job_name    String,
     bytes_in    UInt32,
-    payload     String CODEC(ZSTD(6))
+    payload     String CODEC(ZSTD(6)),
+    chain_key   String DEFAULT '',
+    seq         UInt64 DEFAULT 0,
+    prev_hash   String DEFAULT '',
+    hash        String DEFAULT '',
+    INDEX idx_chain chain_key TYPE bloom_filter GRANULARITY 4
 ) ENGINE = MergeTree
 PARTITION BY toYYYYMM(event_time)
 ORDER BY (run_id, event_time);

@@ -64,6 +64,15 @@ class CompositeStore(Store):
     def raw_events(self, run_id):
         return self.runs.raw_events(run_id)
 
+    def chain_events(self, chain_key):
+        return self.runs.chain_events(chain_key)
+
+    def chain_head(self, chain_key):
+        return self.runs.chain_head(chain_key)
+
+    def get_facet_named(self, h):
+        return self.runs.get_facet_named(h)
+
     def tool_aggregates(self, parent_run_id=None):
         return self.runs.tool_aggregates(parent_run_id)
 
